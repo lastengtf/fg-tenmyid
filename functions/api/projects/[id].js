@@ -72,6 +72,7 @@ export async function onRequestPut(context) {
       expenses: data.expenses !== undefined ? data.expenses : (existing.expenses || []),
       shotlist: data.shotlist !== undefined ? data.shotlist : (existing.shotlist || []),
       gearChecklist: data.gearChecklist !== undefined ? data.gearChecklist : (existing.gearChecklist || []),
+      selectionQuota: data.selectionQuota !== undefined ? (Number(data.selectionQuota) || 20) : (existing.selectionQuota || 20),
       selectedPhotos: data.selectedPhotos !== undefined ? data.selectedPhotos.trim() : (existing.selectedPhotos || ''),
       notes: data.notes !== undefined ? data.notes.trim() : existing.notes
     });

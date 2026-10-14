@@ -55,6 +55,11 @@ export default {
         const res = await env.ASSETS.fetch(adminReq);
         if (res.status !== 404) return res;
       }
+      if (pathname === '/portal' || pathname === '/portal/' || pathname.startsWith('/portal')) {
+        const portalReq = new Request(new URL('/portal/index.html', request.url), request);
+        const res = await env.ASSETS.fetch(portalReq);
+        if (res.status !== 404) return res;
+      }
       const assetResponse = await env.ASSETS.fetch(request);
       if (assetResponse.status !== 404) {
         return assetResponse;
@@ -63,6 +68,11 @@ export default {
       if (pathname.startsWith('/admin')) {
         const adminIndexReq = new Request(new URL('/admin/index.html', request.url), request);
         return await env.ASSETS.fetch(adminIndexReq);
+      }
+      // If pathname starts with /portal, fallback to /portal/index.html
+      if (pathname.startsWith('/portal')) {
+        const portalIndexReq = new Request(new URL('/portal/index.html', request.url), request);
+        return await env.ASSETS.fetch(portalIndexReq);
       }
       // SPA Fallback for client-side routing
       const indexReq = new Request(new URL('/', request.url), request);
@@ -134,6 +144,7 @@ async function handleApi(pathname, method, request, env) {
         workflowStatus: project.workflowStatus,
         driveUrl: project.driveUrl,
         selectionUrl: project.selectionUrl,
+        selectionQuota: Number(project.selectionQuota) || 20,
         selectedPhotos: project.selectedPhotos || '',
         deliverables: project.deliverables || []
       },
@@ -161,7 +172,23 @@ async function handleApi(pathname, method, request, env) {
       return jsonResponse({ error: 'Data sesi foto tidak ditemukan.' }, 404);
     }
     const data = await request.json();
-    project.selectedPhotos = (data.selectedPhotos || '').trim();
+    const rawPhotos = data.selectedPhotos;
+    let photoList = [];
+    if (Array.isArray(rawPhotos)) {
+      photoList = rawPhotos.map(s => String(s).trim()).filter(Boolean);
+    } else if (typeof rawPhotos === 'string') {
+      photoList = rawPhotos.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    }
+    photoList = [...new Set(photoList)];
+
+    const quota = Number(project.selectionQuota) || 20;
+    if (photoList.length > quota) {
+      return jsonResponse({
+        error: `Jumlah foto yang Anda pilih (${photoList.length} foto) melebihi batas kuota paket (${quota} foto). Silakan hapus beberapa foto.`
+      }, 400);
+    }
+
+    project.selectedPhotos = photoList.join(', ');
     project.selectedAt = new Date().toISOString();
     if (project.workflowStatus === 'shooting_done') {
       project.workflowStatus = 'selection';
@@ -169,8 +196,10 @@ async function handleApi(pathname, method, request, env) {
     await saveProject(env, project);
     return jsonResponse({
       success: true,
-      message: 'Daftar nomor foto pilihan Anda berhasil dikirim ke fotografer!',
-      selectedPhotos: project.selectedPhotos
+      message: 'Daftar nomor foto pilihan Anda berhasil disimpan dan dikirim ke fotografer!',
+      selectedPhotos: project.selectedPhotos,
+      selectedCount: photoList.length,
+      selectionQuota: quota
     });
   }
 
@@ -306,7 +335,7 @@ async function handleApi(pathname, method, request, env) {
         title: newProject.title,
         category: newProject.category,
         date: newProject.date,
-        portalUrl: `/?portal=${projectId}`
+        portalUrl: `/portal?id=${projectId}`
       }
     });
   }
@@ -579,6 +608,7 @@ async function handleApi(pathname, method, request, env) {
         expenses: Array.isArray(data.expenses) ? data.expenses : [],
         shotlist: Array.isArray(data.shotlist) ? data.shotlist : [],
         gearChecklist: Array.isArray(data.gearChecklist) ? data.gearChecklist : [],
+        selectionQuota: Number(data.selectionQuota) || 20,
         selectedPhotos: (data.selectedPhotos || '').trim(),
         notes: (data.notes || '').trim()
       });
@@ -638,6 +668,7 @@ async function handleApi(pathname, method, request, env) {
         expenses: data.expenses !== undefined ? data.expenses : (existing.expenses || []),
         shotlist: data.shotlist !== undefined ? data.shotlist : (existing.shotlist || []),
         gearChecklist: data.gearChecklist !== undefined ? data.gearChecklist : (existing.gearChecklist || []),
+        selectionQuota: data.selectionQuota !== undefined ? (Number(data.selectionQuota) || 20) : (existing.selectionQuota || 20),
         selectedPhotos: data.selectedPhotos !== undefined ? data.selectedPhotos.trim() : (existing.selectedPhotos || ''),
         notes: data.notes !== undefined ? data.notes.trim() : existing.notes
       });

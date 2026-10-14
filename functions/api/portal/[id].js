@@ -42,6 +42,7 @@ export async function onRequestGet(context) {
       workflowStatus: project.workflowStatus,
       driveUrl: project.driveUrl,
       selectionUrl: project.selectionUrl,
+      selectionQuota: Number(project.selectionQuota) || 20,
       selectedPhotos: project.selectedPhotos || '',
       deliverables: project.deliverables || []
     },
@@ -74,9 +75,26 @@ export async function onRequestPost(context) {
   }
 
   const data = await request.json();
-  const selectedPhotos = (data.selectedPhotos || '').trim();
+  const rawPhotos = data.selectedPhotos;
+  let photoList = [];
 
-  project.selectedPhotos = selectedPhotos;
+  if (Array.isArray(rawPhotos)) {
+    photoList = rawPhotos.map(s => String(s).trim()).filter(Boolean);
+  } else if (typeof rawPhotos === 'string') {
+    photoList = rawPhotos.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+  }
+
+  // Deduplicate
+  photoList = [...new Set(photoList)];
+
+  const quota = Number(project.selectionQuota) || 20;
+  if (photoList.length > quota) {
+    return jsonResponse({
+      error: `Jumlah foto yang Anda pilih (${photoList.length} foto) melebihi batas kuota paket (${quota} foto). Silakan hapus beberapa foto.`
+    }, 400);
+  }
+
+  project.selectedPhotos = photoList.join(', ');
   project.selectedAt = new Date().toISOString();
   if (project.workflowStatus === 'shooting_done') {
     project.workflowStatus = 'selection';
@@ -87,7 +105,9 @@ export async function onRequestPost(context) {
 
   return jsonResponse({
     success: true,
-    message: 'Daftar nomor foto pilihan Anda berhasil dikirim ke fotografer!',
-    selectedPhotos: project.selectedPhotos
+    message: 'Daftar nomor foto pilihan Anda berhasil disimpan dan dikirim ke fotografer!',
+    selectedPhotos: project.selectedPhotos,
+    selectedCount: photoList.length,
+    selectionQuota: quota
   });
 }

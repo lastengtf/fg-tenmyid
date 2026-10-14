@@ -3,200 +3,158 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TEN Photography - Layanan Fotografi Profesional & Portal Klien</title>
-  <meta name="description" content="Layanan fotografi profesional Wedding, Prewedding, Portrait, Wisuda, dan Event. Reservasi online dan pantau progres foto secara real-time.">
+  <title>TEN Photography - Portal Klien & Reservasi</title>
+  <meta name="description" content="Layanan fotografi profesional. Pelacakan sesi foto real-time dan reservasi online.">
   <link rel="stylesheet" href="/css/public.css">
 </head>
 <body>
 
-  <!-- Site Navigation -->
+  <!-- Header -->
   <header class="site-header">
-    <div class="container nav-wrap">
-      <div class="brand-logo">
-        <div class="brand-icon">📸</div>
+    <div class="container header-wrap">
+      <div class="brand-title">
+        <span>📸</span>
         <span class="studio-name">TEN PHOTOGRAPHY</span>
       </div>
-      <nav class="nav-links">
-        <a href="#hero" class="nav-link">Beranda</a>
-        <a href="#packages" class="nav-link">Paket Layanan</a>
-        <a href="#booking" class="nav-link">Reservasi Jadwal</a>
-        <a href="#track" class="nav-link">Cek Sesi Foto</a>
-        <a href="#booking" class="btn btn-primary btn-sm">📅 Booking Sekarang</a>
-      </nav>
+      <a href="/admin" class="admin-link">
+        🔒 Area Fotografer (Admin)
+      </a>
     </div>
   </header>
 
-  <!-- Hero Section -->
-  <section id="hero" class="hero">
-    <div class="container">
-      <div class="hero-pill">✨ Visual Storyteller & Studio</div>
-      <h1 class="hero-title">
-        Abadikan Setiap Momen Berharga <span>Dengan Sempurna</span>
-      </h1>
-      <p class="hero-subtitle studio-tagline">
-        Layanan fotografi profesional untuk Wedding, Prewedding, Portrait, Wisuda, dan Event. Pantau alur kerja pemotretan Anda secara transparan dan instan.
+  <!-- Main Container -->
+  <div class="container">
+    <!-- Functional Navigation Tabs -->
+    <nav class="tabs-nav">
+      <button type="button" class="tab-btn active" data-tab="track">
+        <span>🔍</span> Cek Status Sesi Foto
+      </button>
+      <button type="button" class="tab-btn" data-tab="booking">
+        <span>📅</span> Reservasi Sesi Baru
+      </button>
+      <button type="button" class="tab-btn" data-tab="packages">
+        <span>📦</span> Daftar Paket & Harga
+      </button>
+    </nav>
+
+    <!-- TAB 1: Cek Status Sesi (Opens in New Tab) -->
+    <section id="tab-track" class="tab-content main-card">
+      <h1 class="card-heading">Cek Status Sesi & Unduh Galeri Foto</h1>
+      <p class="card-sub">
+        Masukkan nomor WhatsApp atau ID Sesi Anda untuk membuka portal pemantauan, melihat progres editing, dan mengunduh galeri di tab baru.
       </p>
-      <div class="hero-actions">
-        <a href="#booking" class="btn btn-primary">📅 Reservasi Sesi Foto</a>
-        <a href="#packages" class="btn btn-secondary">📸 Lihat Katalog Paket</a>
-        <a href="#track" class="btn btn-secondary">🔍 Cek Status Foto Saya</a>
-      </div>
-    </div>
-  </section>
 
-  <!-- Live Portal Section (Shows when active or from ?portal=ID) -->
-  <section id="portal-view-section" class="section" style="display: none; background: #0c1219;">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-tag">PORTAL KLIEN REAL-TIME</div>
-        <h2 class="section-title">Pemantauan Sesi Foto Anda</h2>
-      </div>
-      <div id="portal-view-content" style="max-width: 780px; margin: 0 auto;"></div>
-    </div>
-  </section>
+      <form id="public-track-form">
+        <div class="form-group">
+          <label class="form-label">Nomor WhatsApp atau ID Sesi Foto</label>
+          <input type="text" id="track-input" class="form-control" placeholder="Contoh: 08123456789 atau proj_123456" required>
+        </div>
+        <button type="submit" id="btn-track-submit" class="btn btn-primary" style="width: 100%; padding: 12px;">
+          🔍 Lacak & Buka Portal Sesi ↗
+        </button>
+      </form>
 
-  <!-- Packages Section -->
-  <section id="packages" class="section">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-tag">PILIHAN LAYANAN</div>
-        <h2 class="section-title">Paket Fotografi Pilihan</h2>
-        <p class="section-desc">Pilih paket terbaik yang dirancang khusus untuk kebutuhan dokumentasi momen spesial Anda.</p>
-      </div>
+      <div id="track-search-results" style="display: none;"></div>
+    </section>
+
+    <!-- TAB 2: Formulir Booking / Reservasi -->
+    <section id="tab-booking" class="tab-content main-card" style="display: none;">
+      <h2 class="card-heading">Formulir Reservasi Sesi Pemotretan</h2>
+      <p class="card-sub">
+        Isi formulir untuk mengajukan jadwal pemotretan. Kami akan mengonfirmasi ketersediaan jadwal via WhatsApp.
+      </p>
+
+      <form id="public-book-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nama Lengkap *</label>
+            <input type="text" id="book-name" class="form-control" placeholder="Nama Anda" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nomor WhatsApp *</label>
+            <input type="tel" id="book-phone" class="form-control" placeholder="08xxxxxxxxxx" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Kategori Foto</label>
+            <select id="book-category" class="form-control">
+              <option value="Wedding">Wedding</option>
+              <option value="Prewedding">Prewedding</option>
+              <option value="Portrait">Portrait / Personal</option>
+              <option value="Wisuda">Wisuda / Graduation</option>
+              <option value="Event">Event / Gathering</option>
+              <option value="Produk">Produk / Komersial</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pilihan Paket Layanan</label>
+            <select id="book-package" class="form-control">
+              <option value="">-- Pilih Paket Layanan --</option>
+            </select>
+            <div id="book-price-preview" style="font-size: 13px; color: #60a5fa; font-weight: 700; margin-top: 6px; display: none;"></div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Tanggal Rencana Sesi</label>
+            <input type="date" id="book-date" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Perkiraan Waktu / Jam</label>
+            <input type="time" id="book-time" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Lokasi / Venue Acara</label>
+          <input type="text" id="book-location" class="form-control" placeholder="Nama Gedung / Studio / Kota">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catatan / Konsep Acara</label>
+          <textarea id="book-notes" class="form-control" style="min-height: 80px;" placeholder="Tuliskan permintaan khusus, tema pakaian, atau jumlah orang..."></textarea>
+        </div>
+
+        <button type="submit" id="btn-submit-booking" class="btn btn-primary" style="width: 100%; padding: 12px;">
+          🚀 Kirim Permintaan Reservasi
+        </button>
+      </form>
+    </section>
+
+    <!-- TAB 3: Paket Layanan -->
+    <section id="tab-packages" class="tab-content main-card" style="display: none;">
+      <h2 class="card-heading">Daftar Paket & Tarif Layanan</h2>
+      <p class="card-sub">
+        Pilihan paket dokumentasi pemotretan profesional.
+      </p>
 
       <div id="packages-grid" class="packages-grid">
-        <!-- Loaded dynamically via JS -->
+        <!-- Loaded via JS -->
       </div>
-    </div>
-  </section>
-
-  <!-- Booking Section -->
-  <section id="booking" class="section">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-tag">FORMULIR RESERVASI</div>
-        <h2 class="section-title">Booking Jadwal Sesi Pemotretan</h2>
-        <p class="section-desc">Isi formulir di bawah ini untuk mengamankan tanggal pemotretan Anda. Fotografer kami akan segera mengonfirmasi ketersediaan jadwal via WhatsApp.</p>
-      </div>
-
-      <div class="booking-card">
-        <form id="public-book-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Nama Lengkap *</label>
-              <input type="text" id="book-name" class="form-control" placeholder="Nama Anda atau Pasangan" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Nomor WhatsApp Aktif *</label>
-              <input type="tel" id="book-phone" class="form-control" placeholder="08xxxxxxxxxx" required>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Email (Opsional)</label>
-              <input type="email" id="book-email" class="form-control" placeholder="nama@email.com">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Instagram (Opsional)</label>
-              <input type="text" id="book-instagram" class="form-control" placeholder="@username">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Kategori Sesi Foto</label>
-              <select id="book-category" class="form-control">
-                <option value="Wedding">Wedding</option>
-                <option value="Prewedding">Prewedding</option>
-                <option value="Portrait">Portrait / Personal</option>
-                <option value="Wisuda">Wisuda / Graduation</option>
-                <option value="Event">Event / Gathering</option>
-                <option value="Produk">Produk / Komersial</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Pilihan Paket Layanan</label>
-              <select id="book-package" class="form-control">
-                <option value="">-- Pilih Paket Layanan --</option>
-              </select>
-              <div id="book-price-preview" style="font-size: 13px; color: #60a5fa; font-weight: 700; margin-top: 6px; display: none;"></div>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Tanggal Rencana Sesi Foto</label>
-              <input type="date" id="book-date" class="form-control">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Perkiraan Waktu / Jam</label>
-              <input type="time" id="book-time" class="form-control">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Lokasi / Venue Acara</label>
-            <input type="text" id="book-location" class="form-control" placeholder="Nama Studio / Gedung / Kota">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Catatan Konsep / Permintaan Khusus</label>
-            <textarea id="book-notes" class="form-control" style="min-height: 90px;" placeholder="Tuliskan referensi pose, tema pakaian, jumlah orang, atau pertanyaan..."></textarea>
-          </div>
-
-          <button type="submit" id="btn-submit-booking" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 15px;">
-            🚀 Kirim Permintaan Reservasi
-          </button>
-        </form>
-      </div>
-    </div>
-  </section>
-
-  <!-- Track / Portal Search Section -->
-  <section id="track" class="section">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-tag">PELACAKAN PROGRESS</div>
-        <h2 class="section-title">Sudah Memiliki Sesi Foto Bersama Kami?</h2>
-        <p class="section-desc">Klien yang sudah terdaftar dapat memantau status editing, melihat jadwal, dan mengunduh galeri foto secara langsung.</p>
-      </div>
-
-      <div class="track-card">
-        <form id="public-track-form">
-          <label class="form-label" style="text-align: left;">Cari Sesi Foto Anda</label>
-          <div class="track-input-wrap">
-            <input type="text" id="track-input" class="form-control" placeholder="Ketik Nomor WhatsApp atau ID Sesi..." required>
-            <button type="submit" id="btn-track-submit" class="btn btn-primary">🔍 Lacak Sesi</button>
-          </div>
-        </form>
-        <div id="track-search-results" style="display: none;"></div>
-      </div>
-    </div>
-  </section>
+    </section>
+  </div>
 
   <!-- Modal Booking Success -->
   <div id="modal-booking-success" class="modal-overlay" style="display: none;">
     <div class="modal-content">
-      <div style="text-align: center; margin-bottom: 20px;">
-        <div style="font-size: 48px; margin-bottom: 10px;">🎉</div>
-        <h3 style="font-size: 20px; font-weight: 700; color: #fff;">Permintaan Reservasi Terkirim!</h3>
+      <div style="text-align: center; margin-bottom: 18px;">
+        <div style="font-size: 40px; margin-bottom: 8px;">🎉</div>
+        <h3 style="font-size: 18px; font-weight: 700; color: #fff;">Permintaan Reservasi Terkirim</h3>
         <p style="font-size: 13px; color: var(--text-muted); margin-top: 6px;">
-          Terima kasih <strong id="success-client-name" style="color: #fff;">-</strong>. Data booking Anda untuk sesi <strong id="success-category" style="color: #60a5fa;">-</strong> pada tanggal <strong id="success-date" style="color: #fff;">-</strong> telah kami terima.
+          Terima kasih <strong id="success-client-name" style="color: #fff;">-</strong>. Data booking untuk <strong id="success-category" style="color: #60a5fa;">-</strong> pada tanggal <strong id="success-date" style="color: #fff;">-</strong> telah kami terima.
         </p>
       </div>
 
-      <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">
-        💡 Untuk mempercepat konfirmasi jadwal & ketersediaan tanggal, silakan klik tombol WhatsApp di bawah untuk langsung menghubungi fotografer kami.
-      </div>
-
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <a id="success-wa-direct" href="#" target="_blank" class="btn btn-primary" style="padding: 12px; font-size: 14px;">
+        <a id="success-wa-direct" href="#" target="_blank" class="btn btn-primary" style="padding: 12px;">
           💬 Konfirmasi via WhatsApp Sekarang
         </a>
-        <button type="button" id="success-view-portal" class="btn btn-secondary">
-          🔗 Lihat Halaman Portal Sesi Saya
-        </button>
+        <a id="success-view-portal" href="#" target="_blank" class="btn btn-secondary" style="padding: 11px;">
+          🔗 Buka Portal Sesi Saya (Tab Baru ↗)
+        </a>
         <button type="button" class="btn btn-secondary btn-sm" onclick="PublicApp.closeModal('modal-booking-success')">
           Tutup
         </button>
@@ -206,22 +164,15 @@
 
   <!-- Footer -->
   <footer class="site-footer">
-    <div class="container footer-wrap">
-      <div>
-        <div style="font-weight: 700; color: #fff; font-size: 15px;" class="studio-name">TEN PHOTOGRAPHY</div>
-        <div style="font-size: 12px; color: var(--text-dim); margin-top: 2px;">
-          Dokumentasi Fotografi Profesional &bull; <a href="#" target="_blank" class="studio-instagram">@tenphotography</a>
-        </div>
-      </div>
-      <div>
-        <a href="/admin" class="admin-link" title="Area Pengelola">
-          🔒 Area Fotografer (Login Admin)
-        </a>
+    <div class="container">
+      <div style="font-weight: 600; color: #fff;" class="studio-name">TEN PHOTOGRAPHY</div>
+      <div style="margin-top: 4px;">
+        <a href="#" target="_blank" class="studio-instagram" style="color: var(--text-muted);">@tenphotography</a> &bull;
+        <a href="#" target="_blank" class="studio-wa-btn" style="color: var(--text-muted);">WhatsApp</a>
       </div>
     </div>
   </footer>
 
-  <!-- Scripts -->
   <script src="/js/public.js"></script>
 </body>
 </html>

@@ -112,7 +112,7 @@ export async function onRequestPost(context) {
         title: newProject.title,
         category: newProject.category,
         date: newProject.date,
-        portalUrl: `/?portal=${projectId}`
+        portalUrl: `/portal?id=${projectId}`
       }
     });
   } catch (err) {

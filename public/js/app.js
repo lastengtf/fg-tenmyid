@@ -699,6 +699,7 @@ const App = {
         document.getElementById('proj-payment-status').value = p.paymentStatus || 'unpaid';
         document.getElementById('proj-drive-url').value = p.driveUrl || '';
         document.getElementById('proj-notes').value = p.notes || '';
+        document.getElementById('proj-selection-quota').value = p.selectionQuota || 20;
         document.getElementById('proj-selected-photos').value = p.selectedPhotos || '';
 
         this.renderShotlist();
@@ -711,10 +712,12 @@ const App = {
       if (btnInvoice) btnInvoice.style.display = 'none';
       if (btnWA) btnWA.style.display = 'none';
 
+      document.getElementById('proj-selection-quota').value = 20;
       this.currentProject = {
         shotlist: [],
         gearChecklist: [],
         expenses: [],
+        selectionQuota: 20,
         selectedPhotos: ''
       };
       this.renderShotlist();
@@ -755,6 +758,7 @@ const App = {
       shotlist: this.currentProject ? this.currentProject.shotlist || [] : [],
       gearChecklist: this.currentProject ? this.currentProject.gearChecklist || [] : [],
       expenses: this.currentProject ? this.currentProject.expenses || [] : [],
+      selectionQuota: Number(document.getElementById('proj-selection-quota')?.value) || 20,
       selectedPhotos: document.getElementById('proj-selected-photos').value || ''
     };
 
@@ -1091,7 +1095,7 @@ const App = {
     const sendBtn = document.getElementById('wa-btn-send-direct');
 
     const origin = window.location.origin;
-    const portalUrl = `${origin}/?portal=${p.id}`;
+    const portalUrl = `${origin}/portal?id=${p.id}`;
     const dateFormatted = p.date ? this.formatDate(p.date) : 'segera';
     const total = this.formatIDR(p.totalPrice || 0);
     const balance = this.formatIDR((p.totalPrice || 0) - (p.dpAmount || 0));
@@ -1327,7 +1331,7 @@ const App = {
   openSharePortal(projectId, projectTitle, clientPhone = '') {
     const modal = document.getElementById('modal-share-portal');
     const origin = window.location.origin;
-    const portalUrl = `${origin}/?portal=${projectId}`;
+    const portalUrl = `${origin}/portal?id=${projectId}`;
 
     document.getElementById('share-portal-url').value = portalUrl;
 

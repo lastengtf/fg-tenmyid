@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Sesi Foto - TEN Photography</title>
+  <meta name="description" content="Portal pemantauan alur kerja sesi foto, unduhan galeri, dan kurasi foto pilihan klien.">
+  <link rel="stylesheet" href="/portal/portal.css">
+</head>
+<body>
+
+  <div class="portal-container">
+    <!-- Top Header Bar -->
+    <header class="portal-header-bar">
+      <div class="brand-badge" id="studio-name-display">TEN PHOTOGRAPHY</div>
+      <a href="/" target="_blank" style="font-size: 12px; color: var(--text-dim); text-decoration: none;">
+        fg.ten.my.id ↗
+      </a>
+    </header>
+
+    <!-- Loading State -->
+    <div id="portal-loader" style="text-align: center; padding: 60px 20px; color: var(--text-dim);">
+      <div style="font-size: 32px; margin-bottom: 12px;">⏳</div>
+      <div>Memuat informasi sesi foto Anda...</div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main id="portal-content" style="display: none;">
+      <!-- Hero Box -->
+      <section class="portal-hero-box">
+        <span id="workflow-badge" class="badge badge-inquiry">-</span>
+        <h1 id="project-title" class="portal-title">Sesi Foto</h1>
+        <div id="client-name" class="portal-client">Klien</div>
+
+        <div class="status-banner">
+          <div class="status-banner-title">
+            <span>📌</span>
+            <span>Status Progres Terkini</span>
+          </div>
+          <div id="status-description" class="status-banner-desc">Memuat status pengerjaan...</div>
+        </div>
+      </section>
+
+      <!-- Jadwal & Lokasi -->
+      <section class="card">
+        <h2 class="card-title">📅 Detail Jadwal & Lokasi</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-item-label">Hari & Tanggal</div>
+            <div id="session-datetime" class="info-item-value">-</div>
+          </div>
+          <div class="info-item">
+            <div class="info-item-label">Paket Layanan</div>
+            <div id="session-package" class="info-item-value">-</div>
+          </div>
+          <div class="info-item" style="grid-column: 1/-1;">
+            <div class="info-item-label">Lokasi Pemotretan</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; flex-wrap: wrap; gap: 8px;">
+              <div id="session-location" style="font-weight: 600; color: #fff;">-</div>
+              <a id="session-maps-btn" href="#" target="_blank" class="btn btn-secondary btn-sm" style="display: none;">
+                🗺️ Buka di Google Maps
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Unduhan Google Drive -->
+      <section class="card">
+        <h2 class="card-title">📦 Unduhan Galeri Foto / Google Drive</h2>
+        <div id="drive-box-content">
+          <!-- Loaded via JS -->
+        </div>
+      </section>
+
+      <!-- Seleksi Foto Pilihan (Interactive Chip Selector & Quota) -->
+      <section class="card">
+        <h2 class="card-title">🖼️ Seleksi Foto Pilihan Klien (Untuk Diedit)</h2>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+          Pilih nomor-nomor foto yang ingin diedit dari album review fotografer. Sistem membatasi jumlah pilihan sesuai kuota paket Anda.
+        </p>
+
+        <!-- Quota Tracker -->
+        <div class="quota-box">
+          <div class="quota-header">
+            <span style="font-weight: 600; color: #fff;">Batas Kuota Pemilihan:</span>
+            <span id="quota-text">0 / 20 Foto</span>
+          </div>
+          <div class="quota-progress-bg">
+            <div id="quota-progress-bar" class="quota-progress-fill"></div>
+          </div>
+        </div>
+
+        <!-- Input Tag / Chip -->
+        <div class="input-chip-row">
+          <input type="text" id="chip-input" class="form-control" placeholder="Ketik nomor foto (misal: 023 atau IMG_023)...">
+          <button type="button" id="btn-add-chip" class="btn btn-primary" style="white-space: nowrap;">
+            + Tambah
+          </button>
+          <button type="button" id="btn-paste-chips" class="btn btn-secondary" style="white-space: nowrap;" title="Tempelkan banyak nomor sekaligus">
+            📋 Tempel
+          </button>
+        </div>
+
+        <!-- Chips List -->
+        <div id="chips-container" class="chips-container">
+          <span class="chip-empty-placeholder">Belum ada foto yang dipilih.</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 6px;">
+          <div id="save-status-msg" style="font-size: 12px; font-weight: 600; color: var(--text-dim);"></div>
+          <button type="button" id="btn-save-selection" class="btn btn-success" style="padding: 10px 18px;">
+            💾 Kunci & Kirim Pilihan ke Fotografer
+          </button>
+        </div>
+      </section>
+
+      <!-- Informasi Pembayaran -->
+      <section class="card">
+        <h2 class="card-title">💳 Rincian Pembayaran</h2>
+        <div class="payment-row">
+          <span>Total Biaya Sesi:</span>
+          <strong id="pay-total">Rp 0</strong>
+        </div>
+        <div class="payment-row">
+          <span>Uang Muka (DP) Masuk:</span>
+          <span id="pay-dp" style="color: #60a5fa; font-weight: 600;">Rp 0</span>
+        </div>
+        <div class="payment-total-row">
+          <span>Sisa Tagihan:</span>
+          <span id="pay-balance" style="color: #3fb950;">Rp 0</span>
+        </div>
+
+        <div id="bank-info-box" style="margin-top: 14px; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; font-size: 13px;">
+          <div style="color: var(--text-dim); font-size: 11px; text-transform: uppercase;">Rekening Transfer Pembayaran:</div>
+          <div id="bank-name-account" style="font-weight: 700; color: #fff; font-size: 14px; margin-top: 2px;">-</div>
+          <div id="bank-holder" style="color: var(--text-muted); font-size: 12px;">-</div>
+        </div>
+      </section>
+
+      <!-- Action Footer -->
+      <div style="text-align: center; margin-top: 24px;">
+        <a id="btn-wa-photographer" href="#" target="_blank" class="btn btn-secondary" style="padding: 12px 24px; font-size: 14px;">
+          💬 Hubungi Fotografer via WhatsApp
+        </a>
+      </div>
+
+      <footer class="portal-footer">
+        Portal Klien &bull; fg.ten.my.id
+      </footer>
+    </main>
+  </div>
+
+  <script src="/portal/portal.js"></script>
+</body>
+</html>

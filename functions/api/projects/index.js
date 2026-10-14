@@ -109,6 +109,7 @@ export async function onRequestPost(context) {
       expenses: Array.isArray(data.expenses) ? data.expenses : [],
       shotlist: Array.isArray(data.shotlist) ? data.shotlist : [],
       gearChecklist: Array.isArray(data.gearChecklist) ? data.gearChecklist : [],
+      selectionQuota: Number(data.selectionQuota) || 20,
       selectedPhotos: (data.selectedPhotos || '').trim(),
       notes: (data.notes || '').trim()
     });
