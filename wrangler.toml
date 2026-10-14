@@ -1,0 +1,8 @@
+name = "fg-tenmyid"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "public"
+
+# Cloudflare KV binding as specified in instruksi.md
+[[kv_namespaces]]
+binding = "FG_KV"
+id = "dca0f9f18b5540268eecef0363cf8b43"

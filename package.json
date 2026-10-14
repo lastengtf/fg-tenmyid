@@ -1,0 +1,14 @@
+{
+  "name": "fg-tenmyid",
+  "version": "1.0.0",
+  "description": "Photographer Client Workflow Platform for fg.ten.my.id",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev public --kv FG_KV",
+    "build": "echo \"Static assets ready in public/\"",
+    "deploy": "wrangler pages deploy public"
+  },
+  "devDependencies": {
+    "wrangler": "^4.73.0"
+  }
+}
