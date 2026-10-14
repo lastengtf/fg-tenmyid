@@ -708,7 +708,7 @@ const App = {
           if (photoCount > 0) {
             syncStatusEl.innerHTML = `<span style="color: #3fb950; font-weight: 600;">✅ ${photoCount} foto tersinkronkan dari Google Drive.</span>`;
           } else {
-            syncStatusEl.textContent = '💡 Klien akan melihat foto visual langsung di portal mereka tanpa membuka Google Drive asli.';
+            syncStatusEl.innerHTML = '💡 Cukup masukkan link folder Google Drive. Pastikan izin folder: <strong style="color: #58a6ff;">"Siapa saja yang memiliki link dapat melihat"</strong>.';
           }
         }
 
@@ -725,7 +725,7 @@ const App = {
 
       document.getElementById('proj-selection-quota').value = 20;
       const syncStatusEl = document.getElementById('sync-drive-status');
-      if (syncStatusEl) syncStatusEl.textContent = '💡 Klien akan melihat foto visual langsung di portal mereka tanpa membuka Google Drive asli.';
+      if (syncStatusEl) syncStatusEl.innerHTML = '💡 Cukup masukkan link folder Google Drive. Pastikan izin folder: <strong style="color: #58a6ff;">"Siapa saja yang memiliki link dapat melihat"</strong>.';
 
       this.currentProject = {
         shotlist: [],

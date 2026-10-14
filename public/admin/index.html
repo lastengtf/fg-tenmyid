@@ -414,52 +414,45 @@
               </div>
 
               <h3 style="font-size: 13px; font-weight: 600; margin: 18px 0 10px 0; color: #fff; border-top: 1px solid var(--border); padding-top: 14px; display: flex; align-items: center; justify-content: space-between;">
-                <span>⚡ Integrasi Google Apps Script (Pembaca Foto Drive Otomatis)</span>
-                <span class="badge" style="background: rgba(35, 134, 54, 0.2); color: #3fb950; font-size: 10px;">Direkomendasikan</span>
+                <span>⚡ Integrasi Google Drive (Langsung & Otomatis)</span>
+                <span class="badge" style="background: rgba(35, 134, 54, 0.2); color: #3fb950; font-size: 10px;">Siap Pakai</span>
               </h3>
               
-              <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
-                <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;">
-                  Gunakan Google Apps Script gratis agar sistem langsung membaca seluruh isi folder Google Drive foto secara instan tanpa Google Cloud Console atau API Key yang rumit.
-                </p>
-                
-                <div class="form-group" style="margin-bottom: 10px;">
-                  <label class="form-label">URL Web App Google Apps Script</label>
-                  <input type="url" id="setting-googleAppsScriptUrl" class="form-control" placeholder="https://script.google.com/macros/s/.../exec">
-                  <span style="font-size: 11px; color: var(--text-dim); display: block; margin-top: 4px;">
-                    Tempelkan URL Web App hasil deploy dari script.google.com di sini.
-                  </span>
-                </div>
-
-                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px;">
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="App.copyAppsScriptCode()">
-                    📋 Salin Kode Google Apps Script
-                  </button>
-                  <a href="https://script.google.com" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration: none;">
-                    🚀 Buka script.google.com ↗
-                  </a>
-                </div>
-
-                <!-- Panduan Langkah Singkat -->
-                <div style="margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.25); border-radius: 6px; font-size: 11px; color: var(--text-dim); line-height: 1.5;">
-                  <strong style="color: #fff;">Cara Pasang (Hanya 1 Menit):</strong>
-                  <ol style="margin-left: 18px; margin-top: 4px;">
-                    <li>Buka <code>script.google.com</code> &rarr; Klik <strong>Project Baru</strong>.</li>
-                    <li>Hapus kode bawaan, lalu klik tombol <strong>"Salin Kode Google Apps Script"</strong> di atas dan tempelkan.</li>
-                    <li>Klik tombol biru <strong>Terapkan (Deploy) &rarr; Penerapan baru (New deployment)</strong>.</li>
-                    <li>Pilih jenis <strong>Aplikasi web (Web app)</strong>.</li>
-                    <li>Pada <em>"Siapa yang memiliki akses (Who has access)"</em>: pilih <strong>Siapa saja (Anyone)</strong>.</li>
-                    <li>Klik <strong>Terapkan</strong> &rarr; Salin URL Web App dan tempelkan di kolom atas ini!</li>
-                  </ol>
+              <div style="background: rgba(35, 134, 54, 0.08); border: 1px solid rgba(56, 139, 253, 0.25); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                  <span style="font-size: 20px;">🎉</span>
+                  <div>
+                    <h4 style="font-size: 13px; font-weight: 600; color: #58a6ff; margin: 0 0 4px 0;">Tidak Perlu Setup Rumit Apapun!</h4>
+                    <p style="font-size: 12px; color: var(--text); line-height: 1.5; margin-bottom: 8px;">
+                      Anda cukup menempelkan link folder Google Drive pada saat membuat/mengedit proyek. Foto di dalam folder akan langsung terbaca otomatis secara visual ke portal klien.
+                    </p>
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px 12px; font-size: 11px; color: var(--text-dim); line-height: 1.5;">
+                      📌 <strong>Satu-satunya syarat:</strong> Di Google Drive, klik <em>Bagikan (Share)</em> pada foldernya, dan setel Akses umum ke: <strong style="color: #3fb950;">"Siapa saja yang memiliki link dapat melihat" (Anyone with the link can view)</strong>.
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <!-- Opsi Cadangan: Google Drive API Key -->
+              <!-- Opsi Tambahan / Cadangan (Opsional) -->
               <details style="margin-bottom: 14px; font-size: 12px; color: var(--text-muted);">
-                <summary style="cursor: pointer; color: var(--text-dim);">Opsi Alternatif: Google Drive API Key (Google Cloud Console)</summary>
-                <div class="form-group" style="margin-top: 10px;">
-                  <label class="form-label">Google Drive API Key (Opsional)</label>
-                  <input type="text" id="setting-googleDriveApiKey" class="form-control" placeholder="AIzaSy...">
+                <summary style="cursor: pointer; color: var(--text-dim); padding: 4px 0;">⚙️ Opsi Lanjutan: Google Apps Script / API Key (Opsional)</summary>
+                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-top: 8px;">
+                  <div class="form-group" style="margin-bottom: 10px;">
+                    <label class="form-label">URL Web App Google Apps Script (Opsional)</label>
+                    <input type="url" id="setting-googleAppsScriptUrl" class="form-control" placeholder="https://script.google.com/macros/s/.../exec">
+                  </div>
+                  <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="App.copyAppsScriptCode()">
+                      📋 Salin Kode Google Apps Script
+                    </button>
+                    <a href="https://script.google.com" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration: none;">
+                      🚀 Buka script.google.com ↗
+                    </a>
+                  </div>
+                  <div class="form-group" style="margin-top: 10px;">
+                    <label class="form-label">Google Drive API Key (Opsional)</label>
+                    <input type="text" id="setting-googleDriveApiKey" class="form-control" placeholder="AIzaSy...">
+                  </div>
                 </div>
               </details>
 
@@ -628,15 +621,15 @@
 
             <!-- Link Hasil Foto -->
             <div class="form-group">
-              <label class="form-label">Link Galeri / Google Drive Berisi Foto</label>
+              <label class="form-label">Link Folder Google Drive Berisi Foto</label>
               <div style="display: flex; gap: 8px;">
                 <input type="url" id="proj-drive-url" class="form-control" placeholder="https://drive.google.com/drive/folders/..." style="flex: 1;">
                 <button type="button" class="btn btn-secondary btn-sm" id="btn-sync-drive" onclick="App.syncDrivePhotos()" style="white-space: nowrap;">
                   ⚡ Sinkronkan Foto
                 </button>
               </div>
-              <div id="sync-drive-status" style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">
-                💡 Klien akan melihat foto visual langsung di portal mereka tanpa membuka Google Drive asli.
+              <div id="sync-drive-status" style="font-size: 11px; color: var(--text-dim); margin-top: 5px; line-height: 1.4;">
+                💡 Cukup masukkan tautan folder Google Drive. Pastikan izin folder disetel: <strong style="color: #58a6ff;">"Siapa saja yang memiliki link dapat melihat"</strong>. Foto akan tampil otomatis di galeri klien!
               </div>
             </div>
 
