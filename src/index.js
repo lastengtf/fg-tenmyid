@@ -16,7 +16,9 @@ import {
   savePackage,
   deletePackage,
   getSettings,
-  saveSettings
+  saveSettings,
+  getAuthConfig,
+  saveAuthConfig
 } from '../functions/api/_utils.js';
 
 export default {
@@ -68,13 +70,17 @@ async function handleApi(pathname, method, request, env) {
     if (!email || !password) {
       return jsonResponse({ error: 'Email dan password wajib diisi.' }, 400);
     }
-    const configuredEmail = env.AUTH_EMAIL || 'admin@fg.ten.my.id';
-    const configuredPassword = env.AUTH_PASSWORD || 'admin123';
+    const authConfig = await getAuthConfig(env);
+    const configuredEmail = authConfig.email;
+    const configuredPassword = authConfig.password;
     if (email.trim().toLowerCase() !== configuredEmail.trim().toLowerCase() || password !== configuredPassword) {
       return jsonResponse({
         error: 'Email atau password salah. Pastikan sesuai dengan variabel AUTH_EMAIL & AUTH_PASSWORD di Cloudflare.'
       }, 401);
     }
+    // Simpan ke KV sebagai backup permanen
+    await saveAuthConfig(env, configuredEmail, configuredPassword);
+
     const token = await createSession(env, configuredEmail);
     const isHttps = request.url.startsWith('https');
     const cookieHeader = `fg_session=${token}; Path=/; Max-Age=2592000; SameSite=Lax${isHttps ? '; Secure' : ''}`;

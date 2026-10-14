@@ -1,6 +1,7 @@
 name = "fg-tenmyid"
 main = "src/index.js"
 compatibility_date = "2024-09-23"
+keep_vars = true
 
 [assets]
 directory = "./public"

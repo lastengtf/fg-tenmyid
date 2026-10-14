@@ -1,5 +1,4 @@
-// POST /api/auth/login
-import { jsonResponse, createSession } from '../_utils.js';
+import { jsonResponse, createSession, getAuthConfig, saveAuthConfig } from '../_utils.js';
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -12,9 +11,10 @@ export async function onRequestPost(context) {
       return jsonResponse({ error: 'Email dan password wajib diisi.' }, 400);
     }
 
-    // Ambil kredensial dari environment variable Cloudflare Dashboard
-    const configuredEmail = env.AUTH_EMAIL || 'admin@fg.ten.my.id';
-    const configuredPassword = env.AUTH_PASSWORD || 'admin123';
+    // Ambil kredensial (dari dashboard env atau KV backup)
+    const authConfig = await getAuthConfig(env);
+    const configuredEmail = authConfig.email;
+    const configuredPassword = authConfig.password;
 
     // Verifikasi kredensial
     const isEmailValid = email.trim().toLowerCase() === configuredEmail.trim().toLowerCase();
@@ -25,6 +25,9 @@ export async function onRequestPost(context) {
         error: 'Email atau password salah. Pastikan sesuai dengan variabel AUTH_EMAIL & AUTH_PASSWORD di Cloudflare.'
       }, 401);
     }
+
+    // Simpan ke KV sebagai backup permanen
+    await saveAuthConfig(env, configuredEmail, configuredPassword);
 
     // Buat token sesi dan simpan di KV
     const token = await createSession(env, configuredEmail);

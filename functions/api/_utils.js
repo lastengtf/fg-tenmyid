@@ -347,3 +347,26 @@ export async function saveSettings(env, settings) {
   await kvPut(env, 'settings', settings);
   return settings;
 }
+
+// Auth Config with KV Persistence
+export async function getAuthConfig(env) {
+  let email = env.AUTH_EMAIL;
+  let password = env.AUTH_PASSWORD;
+
+  const saved = await kvGet(env, 'auth_config', null);
+  if (saved) {
+    if (!email && saved.email) email = saved.email;
+    if (!password && saved.password) password = saved.password;
+  }
+
+  return {
+    email: email || 'admin@fg.ten.my.id',
+    password: password || 'admin123'
+  };
+}
+
+export async function saveAuthConfig(env, email, password) {
+  const config = { email, password, updatedAt: new Date().toISOString() };
+  await kvPut(env, 'auth_config', config);
+  return config;
+}

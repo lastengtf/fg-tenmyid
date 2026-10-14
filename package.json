@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "Photographer Client Workflow Platform for fg.ten.my.id",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "build": "echo \"Ready to deploy\"",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy --keep-vars"
   },
   "devDependencies": {
     "wrangler": "^4.73.0"
