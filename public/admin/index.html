@@ -181,10 +181,18 @@
       </div>
     </aside>
 
+    <!-- Mobile Drawer Backdrop -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="App.closeSidebar()"></div>
+
     <!-- Main Content -->
     <div class="main-content">
       <header class="top-bar">
-        <h1 class="page-title" id="page-heading">Ringkasan Alur Kerja</h1>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" id="btn-sidebar-toggle" class="btn btn-secondary btn-sm sidebar-toggle-btn" onclick="App.toggleSidebar()" title="Buka Menu" style="display: none; padding: 6px 10px; font-size: 16px;">
+            ☰
+          </button>
+          <h1 class="page-title" id="page-heading">Ringkasan Alur Kerja</h1>
+        </div>
         <div class="top-actions">
           <button id="btn-create-project-top" class="btn btn-primary">
             + Proyek Baru

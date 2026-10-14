@@ -197,6 +197,18 @@ const PortalApp = {
 
       // Fetch fresh photos from Drive endpoint if needed
       await this.fetchDrivePhotos();
+
+      // Smart default tab selection based on project status & photos
+      const p = this.project;
+      if (this.drivePhotos && this.drivePhotos.length > 0) {
+        this.switchMainTab('selection');
+      } else if (p.workflowStatus === 'gallery_ready' || p.workflowStatus === 'delivered' || p.driveUrl) {
+        this.switchMainTab('downloads');
+      } else if (p.workflowStatus === 'inquiry' || p.workflowStatus === 'booked') {
+        this.switchMainTab('schedule');
+      } else {
+        this.switchMainTab('selection');
+      }
     } catch (err) {
       if (loader) loader.style.display = 'none';
       this.renderError(err.message);
@@ -421,16 +433,21 @@ const PortalApp = {
 
       return `
         <div class="photo-card ${isSelected ? 'is-selected' : ''}" data-index="${index}" data-key="${this.escapeHtml(photoKey)}">
-          <div class="photo-thumb-wrap" onclick="PortalApp.openLightbox(${index})">
+          <div class="photo-thumb-wrap" onclick="PortalApp.togglePhotoSelectionByIndex(${index})">
             <img class="photo-thumb" src="${thumbUrl}" alt="${this.escapeHtml(photo.name)}" loading="lazy" oncontextmenu="return false;" draggable="false" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\' viewBox=\\'0 0 200 200\\'><rect fill=\\'%2318202c\\' width=\\'200\\' height=\\'200\\'/><text fill=\\'%236e7681\\' x=\\'50%\\' y=\\'50%\\' text-anchor=\\'middle\\' font-size=\\'14\\'>Foto</text></svg>'">
             <div class="photo-watermark-overlay">${this.escapeHtml(watermarkText)}</div>
-            <div class="photo-selected-badge">✓ Terpilih</div>
+            <div class="photo-check-indicator ${isSelected ? 'checked' : ''}" title="${isSelected ? 'Batalkan pilihan' : 'Pilih foto ini'}">
+              ✓
+            </div>
             <button type="button" class="photo-zoom-btn" onclick="event.stopPropagation(); PortalApp.openLightbox(${index})" title="Perbesar Layar Penuh">🔍</button>
           </div>
 
           <div class="photo-card-body">
             <div class="photo-info-top">
               <span class="photo-file-name" title="${this.escapeHtml(photo.name)}">${this.escapeHtml(photo.name)}</span>
+              <button type="button" class="btn-note-photo ${note ? 'has-note' : ''}" onclick="event.stopPropagation(); PortalApp.openNoteModalByKey('${this.escapeHtml(photoKey)}')" title="Catatan edit khusus foto ini" style="font-size: 11px; padding: 3px 6px;">
+                ${note ? '📝 Edit' : '+ Catatan'}
+              </button>
             </div>
 
             ${note ? `
@@ -439,12 +456,9 @@ const PortalApp = {
               </div>
             ` : ''}
 
-            <div class="photo-card-actions">
-              <button type="button" class="btn-select-photo" onclick="PortalApp.togglePhotoSelectionByIndex(${index})">
+            <div class="photo-card-actions" style="margin-top: 2px;">
+              <button type="button" class="btn-select-photo" onclick="PortalApp.togglePhotoSelectionByIndex(${index})" style="width: 100%;">
                 ${isSelected ? '✓ Terpilih' : '+ Pilih Foto'}
-              </button>
-              <button type="button" class="btn-note-photo ${note ? 'has-note' : ''}" onclick="PortalApp.openNoteModalByKey('${this.escapeHtml(photoKey)}')" title="Catatan edit khusus untuk foto ini">
-                📝
               </button>
             </div>
           </div>
@@ -541,6 +555,29 @@ const PortalApp = {
         stickyText.textContent = `${count} / ${quota} Foto Terpilih ${remaining === 0 ? ' (Penuh)' : ''}`;
       }
     }
+
+    // Nav pill
+    const navPill = document.getElementById('nav-quota-pill');
+    if (navPill) {
+      navPill.textContent = `${count}/${quota}`;
+      if (count >= quota) {
+        navPill.style.background = '#238636';
+      } else {
+        navPill.style.background = 'rgba(0, 0, 0, 0.25)';
+      }
+    }
+  },
+
+  switchMainTab(tabName) {
+    document.querySelectorAll('.portal-nav-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.portalTab === tabName);
+    });
+
+    document.querySelectorAll('.portal-tab-pane').forEach(pane => {
+      const isTarget = pane.id === `tab-pane-${tabName}`;
+      pane.style.display = isTarget ? 'block' : 'none';
+      pane.classList.toggle('active', isTarget);
+    });
   },
 
   // --- LIGHTBOX CONTROLS ---

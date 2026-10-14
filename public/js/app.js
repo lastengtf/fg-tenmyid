@@ -279,7 +279,22 @@ const App = {
     }
   },
 
+  toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (sidebar) sidebar.classList.toggle('mobile-open');
+    if (backdrop) backdrop.classList.toggle('active');
+  },
+
+  closeSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (sidebar) sidebar.classList.remove('mobile-open');
+    if (backdrop) backdrop.classList.remove('active');
+  },
+
   navigate(viewName) {
+    this.closeSidebar();
     this.currentView = viewName;
 
     // Update nav active state
