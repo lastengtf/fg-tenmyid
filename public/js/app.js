@@ -1173,6 +1173,9 @@ const App = {
       document.getElementById('setting-bankAccount').value = s.bankAccount || '';
       document.getElementById('setting-bankHolder').value = s.bankHolder || '';
 
+      const appsScriptEl = document.getElementById('setting-googleAppsScriptUrl');
+      if (appsScriptEl) appsScriptEl.value = s.googleAppsScriptUrl || '';
+
       const apiKeyEl = document.getElementById('setting-googleDriveApiKey');
       if (apiKeyEl) apiKeyEl.value = s.googleDriveApiKey || '';
     } catch (err) {
@@ -1182,6 +1185,7 @@ const App = {
 
   async handleSaveSettings(e) {
     e.preventDefault();
+    const appsScriptEl = document.getElementById('setting-googleAppsScriptUrl');
     const apiKeyEl = document.getElementById('setting-googleDriveApiKey');
     const payload = {
       studioName: document.getElementById('setting-studioName').value.trim(),
@@ -1191,6 +1195,7 @@ const App = {
       bankName: document.getElementById('setting-bankName').value.trim(),
       bankAccount: document.getElementById('setting-bankAccount').value.trim(),
       bankHolder: document.getElementById('setting-bankHolder').value.trim(),
+      googleAppsScriptUrl: appsScriptEl ? appsScriptEl.value.trim() : '',
       googleDriveApiKey: apiKeyEl ? apiKeyEl.value.trim() : ''
     };
 
@@ -1201,6 +1206,64 @@ const App = {
     } catch (err) {
       this.toast('Gagal menyimpan pengaturan: ' + err.message, 'error');
     }
+  },
+
+  copyAppsScriptCode() {
+    const code = `/**
+ * GOOGLE APPS SCRIPT - FOTOGRAFER DRIVE PROXY (fg.ten.my.id)
+ * Pasang di https://script.google.com
+ * Terapkan (Deploy) > Penerapan Baru (New Deployment) > Aplikasi Web (Web App)
+ * - Jalankan sebagai (Execute as): Saya (Me)
+ * - Siapa yang memiliki akses (Who has access): Siapa saja (Anyone)
+ */
+function doGet(e) {
+  var folderId = e && e.parameter ? (e.parameter.folderId || e.parameter.id) : null;
+  if (!folderId) {
+    return ContentService.createTextOutput(JSON.stringify({ error: "Parameter folderId diperlukan" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  try {
+    var folder = DriveApp.getFolderById(folderId);
+    var files = folder.getFiles();
+    var result = [];
+
+    while (files.hasNext()) {
+      var file = files.next();
+      var mime = file.getMimeType();
+      var name = file.getName();
+      // Filter image formats
+      if (mime.indexOf("image/") !== -1 || /\\.(jpe?g|png|webp|heic|raw|cr2|cr3|nef|arw)$/i.test(name)) {
+        result.push({
+          id: file.getId(),
+          name: name,
+          mimeType: mime,
+          thumbnailUrl: "https://lh3.googleusercontent.com/d/" + file.getId() + "=w600-h600",
+          previewUrl: "https://lh3.googleusercontent.com/d/" + file.getId() + "=s1600"
+        });
+      }
+    }
+
+    // Sort by filename naturally
+    result.sort(function(a, b) {
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      count: result.length,
+      files: result
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      error: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
+    navigator.clipboard.writeText(code);
+    this.toast('Kode Google Apps Script berhasil disalin! Silakan tempel di script.google.com', 'success');
   },
 
   // --- INVOICE GENERATOR ---

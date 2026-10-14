@@ -196,7 +196,37 @@ async function handleApi(pathname, method, request, env) {
       }
 
       const settings = await getSettings(env);
+      const appsScriptUrl = env.GOOGLE_APPS_SCRIPT_URL || settings.googleAppsScriptUrl;
       const apiKey = env.GOOGLE_DRIVE_API_KEY || settings.googleDriveApiKey;
+
+      // Option A: Google Apps Script Web App
+      if (appsScriptUrl) {
+        try {
+          const targetUrl = `${appsScriptUrl}${appsScriptUrl.includes('?') ? '&' : '?'}folderId=${encodeURIComponent(folderId)}`;
+          const asRes = await fetch(targetUrl, {
+            method: 'GET',
+            redirect: 'follow',
+            headers: { 'Accept': 'application/json' }
+          });
+          const asData = await asRes.json();
+          if (asData && (Array.isArray(asData.files) || Array.isArray(asData.photos))) {
+            const rawList = asData.files || asData.photos || [];
+            const photos = rawList.map(f => ({
+              id: f.id,
+              name: f.name || f.title || f.filename,
+              thumbnailUrl: f.thumbnailUrl || `https://lh3.googleusercontent.com/d/${f.id}=w600-h600`,
+              previewUrl: f.previewUrl || `https://lh3.googleusercontent.com/d/${f.id}=s1600`
+            }));
+            project.drivePhotos = photos;
+            await saveProject(env, project);
+            return jsonResponse({ photos, source: 'apps_script', count: photos.length });
+          }
+        } catch (e) {
+          console.warn('Google Apps Script error:', e.message);
+        }
+      }
+
+      // Option B: Google Drive API Key fallback
       if (apiKey) {
         try {
           const gUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false+and+mimeType+contains+'image/'&key=${apiKey}&fields=files(id,name,mimeType,thumbnailLink)&pageSize=250&orderBy=name`;
@@ -221,10 +251,10 @@ async function handleApi(pathname, method, request, env) {
       return jsonResponse({
         photos: project.drivePhotos || [],
         folderId,
-        needApiKey: !apiKey,
-        message: apiKey
-          ? 'Tidak dapat memuat berkas gambar dari Google Drive. Pastikan folder dapat diakses siapa saja.'
-          : 'Google Drive API Key belum disetel atau folder belum disinkronkan.'
+        needConfig: !appsScriptUrl && !apiKey,
+        message: (appsScriptUrl || apiKey)
+          ? 'Tidak dapat memuat berkas gambar dari Google Drive. Pastikan folder dapat diakses atau periksa URL Apps Script.'
+          : 'Google Apps Script Web App atau API Key belum disetel di Pengaturan Studio.'
       });
     }
 
@@ -233,8 +263,48 @@ async function handleApi(pathname, method, request, env) {
       const folderUrl = data.driveUrl || project.selectionUrl || project.driveUrl;
       const folderId = extractFolderId(folderUrl);
       const settings = await getSettings(env);
+      const appsScriptUrl = data.appsScriptUrl || env.GOOGLE_APPS_SCRIPT_URL || settings.googleAppsScriptUrl;
       const apiKey = data.apiKey || env.GOOGLE_DRIVE_API_KEY || settings.googleDriveApiKey;
 
+      // Option A: Google Apps Script Web App
+      if (folderId && appsScriptUrl) {
+        try {
+          const targetUrl = `${appsScriptUrl}${appsScriptUrl.includes('?') ? '&' : '?'}folderId=${encodeURIComponent(folderId)}`;
+          const asRes = await fetch(targetUrl, {
+            method: 'GET',
+            redirect: 'follow',
+            headers: { 'Accept': 'application/json' }
+          });
+          const asData = await asRes.json();
+
+          if (asData && (Array.isArray(asData.files) || Array.isArray(asData.photos))) {
+            const rawList = asData.files || asData.photos || [];
+            const photos = rawList.map(f => ({
+              id: f.id,
+              name: f.name || f.title || f.filename,
+              thumbnailUrl: f.thumbnailUrl || `https://lh3.googleusercontent.com/d/${f.id}=w600-h600`,
+              previewUrl: f.previewUrl || `https://lh3.googleusercontent.com/d/${f.id}=s1600`
+            }));
+
+            project.drivePhotos = photos;
+            await saveProject(env, project);
+
+            return jsonResponse({
+              success: true,
+              message: `Berhasil mensinkronkan ${photos.length} foto dari Google Drive via Apps Script!`,
+              count: photos.length,
+              photos,
+              source: 'apps_script'
+            });
+          } else if (asData && asData.error) {
+            return jsonResponse({ error: 'Google Apps Script error: ' + asData.error }, 400);
+          }
+        } catch (err) {
+          return jsonResponse({ error: 'Gagal menghubungi Google Apps Script: ' + err.message }, 500);
+        }
+      }
+
+      // Option B: Google Drive API Key
       if (folderId && apiKey) {
         try {
           const gUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false+and+mimeType+contains+'image/'&key=${apiKey}&fields=files(id,name,mimeType,thumbnailLink)&pageSize=300&orderBy=name`;
@@ -255,7 +325,8 @@ async function handleApi(pathname, method, request, env) {
             success: true,
             message: `Berhasil mensinkronkan ${photos.length} foto dari Google Drive!`,
             count: photos.length,
-            photos
+            photos,
+            source: 'google_api'
           });
         } catch (err) {
           return jsonResponse({ error: 'Gagal sinkronisasi Google Drive: ' + err.message }, 500);
@@ -273,7 +344,7 @@ async function handleApi(pathname, method, request, env) {
         });
       }
 
-      return jsonResponse({ error: 'Masukkan URL Google Drive folder yang valid atau sertakan Google Drive API Key.' }, 400);
+      return jsonResponse({ error: 'Masukkan URL Google Drive folder yang valid dan pastikan URL Google Apps Script telah disetel di Pengaturan Studio.' }, 400);
     }
   }
 
@@ -867,6 +938,7 @@ async function handleApi(pathname, method, request, env) {
         bankName: data.bankName !== undefined ? data.bankName.trim() : existing.bankName,
         bankAccount: data.bankAccount !== undefined ? data.bankAccount.trim() : existing.bankAccount,
         bankHolder: data.bankHolder !== undefined ? data.bankHolder.trim() : existing.bankHolder,
+        googleAppsScriptUrl: data.googleAppsScriptUrl !== undefined ? data.googleAppsScriptUrl.trim() : existing.googleAppsScriptUrl,
         googleDriveApiKey: data.googleDriveApiKey !== undefined ? data.googleDriveApiKey.trim() : existing.googleDriveApiKey,
         address: data.address !== undefined ? data.address.trim() : existing.address
       });
