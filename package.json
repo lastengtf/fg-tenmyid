@@ -4,9 +4,9 @@
   "description": "Photographer Client Workflow Platform for fg.ten.my.id",
   "private": true,
   "scripts": {
-    "dev": "wrangler pages dev public --kv FG_KV",
-    "build": "echo \"Static assets ready in public/\"",
-    "deploy": "wrangler pages deploy public"
+    "dev": "wrangler dev",
+    "build": "echo \"Ready to deploy\"",
+    "deploy": "wrangler deploy"
   },
   "devDependencies": {
     "wrangler": "^4.73.0"

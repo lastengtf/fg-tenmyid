@@ -1,6 +1,10 @@
 name = "fg-tenmyid"
+main = "src/index.js"
 compatibility_date = "2024-09-23"
-pages_build_output_dir = "public"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
 
 # Cloudflare KV binding as specified in instruksi.md
 [[kv_namespaces]]
