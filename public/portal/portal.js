@@ -1,4 +1,4 @@
-// Dedicated Client Portal Controller - Visual Photo Selector with Google Drive Preview & Per-Photo Notes
+// Dedicated Client Portal Controller - Human-Crafted Boutique Gallery & Visual Photo Selector
 const PortalApp = {
   projectId: null,
   project: null,
@@ -59,7 +59,7 @@ const PortalApp = {
       toggleManualBtn.addEventListener('click', () => {
         const isHidden = manualBox.style.display === 'none';
         manualBox.style.display = isHidden ? 'block' : 'none';
-        toggleManualBtn.textContent = isHidden ? '🖼️ Sembunyikan Input Manual' : '✍️ Mode Nomor Manual';
+        toggleManualBtn.textContent = isHidden ? 'Sembunyikan Input Manual' : 'Input Nomor Manual';
       });
     }
 
@@ -108,6 +108,25 @@ const PortalApp = {
           this.openNoteModal(photo);
         }
       });
+    }
+
+    // Lightbox Mobile Touch Swipe
+    const lbStage = document.querySelector('.lightbox-stage');
+    if (lbStage) {
+      let touchStartX = 0;
+      let touchEndX = 0;
+      lbStage.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+      }, { passive: true });
+      lbStage.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        const diff = touchEndX - touchStartX;
+        if (diff > 50) {
+          this.navigateLightbox(-1); // Swipe right -> prev
+        } else if (diff < -50) {
+          this.navigateLightbox(1);  // Swipe left -> next
+        }
+      }, { passive: true });
     }
 
     // Lightbox Keyboard Shortcuts
@@ -273,17 +292,17 @@ const PortalApp = {
 
     // Status description
     const statusDesc = {
-      inquiry: 'Sesi foto Anda sedang dalam tahap konsultasi & persiapan konsep.',
-      booked: 'Jadwal sesi foto telah dikonfirmasi dan terdaftar.',
+      inquiry: 'Sesi foto Anda sedang dalam tahap konsultasi awal dan penentuan konsep.',
+      booked: 'Jadwal pemotretan Anda telah terkonfirmasi di agenda studio.',
       dp_received: 'Uang muka (DP) telah diterima. Jadwal pemotretan Anda terkunci aman.',
       shooting_done: 'Sesi pemotretan telah selesai dilaksanakan.',
-      selection: 'Foto sedang dalam tahap kurasi dan seleksi foto pilihan klien.',
-      editing: 'Foto pilihan sedang dalam proses retouching & pewarnaan artistik.',
-      gallery_ready: '🎉 Galeri foto resolusi tinggi sudah siap dan dapat diunduh sekarang!',
+      selection: 'Silakan pilih foto terbaik yang ingin diedit, berikan catatan khusus jika perlu, lalu simpan pilihan Anda.',
+      editing: 'Foto pilihan Anda sedang dalam proses retouching halus dan pewarnaan artistik.',
+      gallery_ready: 'Seluruh berkas foto resolusi tinggi telah siap dan dapat diunduh pada tab Unduhan.',
       delivered: 'Seluruh berkas foto final telah dikirimkan ke Anda.',
-      completed: 'Sesi foto dan pesanan telah selesai secara tuntas.'
+      completed: 'Sesi foto dan seluruh layanan telah selesai tuntas.'
     };
-    document.getElementById('status-description').textContent = statusDesc[p.workflowStatus] || 'Proses sedang berlangsung.';
+    document.getElementById('status-description').textContent = statusDesc[p.workflowStatus] || 'Proses pengerjaan sedang berlangsung.';
 
     // Schedule & Info
     document.getElementById('session-datetime').textContent = `${p.date ? this.formatDate(p.date) : 'TBD'} ${p.time ? `@ ${p.time} WIB` : ''}`;
@@ -303,17 +322,17 @@ const PortalApp = {
     if (p.driveUrl) {
       driveBox.innerHTML = `
         <div style="margin-top: 4px;">
-          <a href="${p.driveUrl}" target="_blank" class="btn btn-primary" style="padding: 11px 22px; font-size: 15px;">
-            📥 Buka Galeri Google Drive
+          <a href="${p.driveUrl}" target="_blank" class="btn btn-primary" style="padding: 11px 24px; font-size: 14px;">
+            Buka Galeri Google Drive &rarr;
           </a>
-          <div style="font-size: 12px; color: var(--text-dim); margin-top: 8px;">
+          <div style="font-size: 13px; color: var(--text-muted); margin-top: 10px;">
             Silakan unduh dan simpan berkas foto Anda dengan aman.
           </div>
         </div>
       `;
     } else {
       driveBox.innerHTML = `
-        <div style="font-size: 13px; color: var(--text-dim);">
+        <div style="font-size: 13px; color: var(--text-muted);">
           Tautan unduhan galeri/Google Drive akan aktif di sini setelah tahap pemotretan dan editing selesai.
         </div>
       `;
@@ -327,8 +346,8 @@ const PortalApp = {
     document.getElementById('pay-total').textContent = this.formatIDR(total);
     document.getElementById('pay-dp').textContent = this.formatIDR(dp);
     const balanceEl = document.getElementById('pay-balance');
-    balanceEl.textContent = balance <= 0 ? 'LUNAS ✅' : this.formatIDR(balance);
-    balanceEl.style.color = balance <= 0 ? '#3fb950' : 'var(--danger-text)';
+    balanceEl.textContent = balance <= 0 ? 'LUNAS ✓' : this.formatIDR(balance);
+    balanceEl.style.color = balance <= 0 ? 'var(--success)' : 'var(--danger)';
 
     // Bank transfer details
     const bankBox = document.getElementById('bank-info-box');
@@ -344,7 +363,7 @@ const PortalApp = {
     if (confirmWaBtn) {
       if (s.phone) {
         let cleanPhone = s.phone.replace(/\D/g, '').replace(/^0/, '62');
-        const payMsg = encodeURIComponent(`Halo ${s.studioName || 'Kak'}! 👋\nSaya *${p.clientName}* ingin konfirmasi pembayaran untuk sesi foto *${p.title}*:\n• Total Tagihan: ${this.formatIDR(total)}\n• Sudah Dibayar/DP: ${this.formatIDR(dp)}\n• Sisa Tagihan: ${balance <= 0 ? 'LUNAS (Rp 0)' : this.formatIDR(balance)}\n\nBukti transfer saya lampirkan berikut ya. Terima kasih!`);
+        const payMsg = encodeURIComponent(`Halo ${s.studioName || 'Kak'}! 👋\nSaya *${p.clientName}* ingin konfirmasi pembayaran untuk sesi foto *${p.title}*:\n• Total Nilai: ${this.formatIDR(total)}\n• Terbayar: ${this.formatIDR(dp)}\n• Sisa: ${balance <= 0 ? 'LUNAS (Rp 0)' : this.formatIDR(balance)}\n\nBukti transfer saya lampirkan berikut ya. Terima kasih!`);
         confirmWaBtn.href = `https://wa.me/${cleanPhone}?text=${payMsg}`;
         confirmWaBtn.style.display = 'inline-flex';
       } else {
@@ -371,7 +390,16 @@ const PortalApp = {
       return;
     }
     navigator.clipboard.writeText(s.bankAccount);
-    alert(`Nomor rekening ${s.bankAccount} (${s.bankName || ''}) berhasil disalin!`);
+    const btn = document.getElementById('btn-copy-bank');
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = '✓ Tersalin!';
+      btn.style.color = 'var(--success)';
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.style.color = '';
+      }, 2500);
+    }
   },
 
   // --- GALLERY RENDERING & FILTERING ---
@@ -395,7 +423,6 @@ const PortalApp = {
 
   isPhotoSelected(photo) {
     if (!photo) return false;
-    // Check match against photo.name or photo.id
     return this.selectedPhotos.includes(photo.name) || this.selectedPhotos.includes(photo.id);
   },
 
@@ -413,8 +440,8 @@ const PortalApp = {
     if (visiblePhotos.length === 0) {
       if (this.drivePhotos.length > 0) {
         grid.innerHTML = `
-          <div style="grid-column: 1/-1; text-align: center; padding: 40px 16px; color: var(--text-dim);">
-            🔍 Tidak ada foto yang cocok dengan filter atau pencarian Anda.
+          <div style="grid-column: 1/-1; text-align: center; padding: 48px 16px; color: var(--text-muted);">
+            Tidak ada foto yang cocok dengan filter atau pencarian Anda.
           </div>
         `;
       } else {
@@ -433,32 +460,36 @@ const PortalApp = {
 
       return `
         <div class="photo-card ${isSelected ? 'is-selected' : ''}" data-index="${index}" data-key="${this.escapeHtml(photoKey)}">
-          <div class="photo-thumb-wrap" onclick="PortalApp.togglePhotoSelectionByIndex(${index})">
-            <img class="photo-thumb" src="${thumbUrl}" alt="${this.escapeHtml(photo.name)}" loading="lazy" oncontextmenu="return false;" draggable="false" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\' viewBox=\\'0 0 200 200\\'><rect fill=\\'%2318202c\\' width=\\'200\\' height=\\'200\\'/><text fill=\\'%236e7681\\' x=\\'50%\\' y=\\'50%\\' text-anchor=\\'middle\\' font-size=\\'14\\'>Foto</text></svg>'">
+          <div class="photo-thumb-wrap" onclick="PortalApp.openLightbox(${index})" title="Klik untuk melihat foto layar penuh">
+            <img class="photo-thumb" src="${thumbUrl}" alt="${this.escapeHtml(photo.name)}" loading="lazy" oncontextmenu="return false;" draggable="false" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\' viewBox=\\'0 0 200 200\\'><rect fill=\\'%23f4f1eb\\' width=\\'200\\' height=\\'200\\'/><text fill=\\'%239c958c\\' x=\\'50%\\' y=\\'50%\\' text-anchor=\\'middle\\' font-size=\\'14\\'>Foto</text></svg>'">
             <div class="photo-watermark-overlay">${this.escapeHtml(watermarkText)}</div>
-            <div class="photo-check-indicator ${isSelected ? 'checked' : ''}" title="${isSelected ? 'Batalkan pilihan' : 'Pilih foto ini'}">
-              ✓
-            </div>
-            <button type="button" class="photo-zoom-btn" onclick="event.stopPropagation(); PortalApp.openLightbox(${index})" title="Perbesar Layar Penuh">🔍</button>
+            
+            <div class="photo-selected-badge">✓ Terpilih</div>
+            
+            <button type="button" class="photo-heart-btn" onclick="event.stopPropagation(); PortalApp.togglePhotoSelectionByIndex(${index})" title="${isSelected ? 'Batalkan pilihan foto ini' : 'Pilih foto ini'}">
+              ${isSelected ? '❤️' : '♡'}
+            </button>
+
+            <div class="photo-zoom-hint">🔍 Zoom</div>
           </div>
 
           <div class="photo-card-body">
             <div class="photo-info-top">
               <span class="photo-file-name" title="${this.escapeHtml(photo.name)}">${this.escapeHtml(photo.name)}</span>
-              <button type="button" class="btn-note-photo ${note ? 'has-note' : ''}" onclick="event.stopPropagation(); PortalApp.openNoteModalByKey('${this.escapeHtml(photoKey)}')" title="Catatan edit khusus foto ini" style="font-size: 11px; padding: 3px 6px;">
-                ${note ? '📝 Edit' : '+ Catatan'}
-              </button>
             </div>
 
             ${note ? `
               <div class="photo-note-preview" onclick="PortalApp.openNoteModalByKey('${this.escapeHtml(photoKey)}')" title="Klik untuk edit catatan">
-                📝 <strong>Catatan:</strong> ${this.escapeHtml(note)}
+                ✎ ${this.escapeHtml(note)}
               </div>
             ` : ''}
 
-            <div class="photo-card-actions" style="margin-top: 2px;">
-              <button type="button" class="btn-select-photo" onclick="PortalApp.togglePhotoSelectionByIndex(${index})" style="width: 100%;">
+            <div class="photo-card-actions">
+              <button type="button" class="btn-card-toggle" onclick="PortalApp.togglePhotoSelectionByIndex(${index})">
                 ${isSelected ? '✓ Terpilih' : '+ Pilih Foto'}
+              </button>
+              <button type="button" class="btn-card-note ${note ? 'has-note' : ''}" onclick="PortalApp.openNoteModalByKey('${this.escapeHtml(photoKey)}')" title="Catatan edit untuk foto ini">
+                ${note ? '✎ Edit' : '+ Catatan'}
               </button>
             </div>
           </div>
@@ -540,10 +571,10 @@ const PortalApp = {
     // Quota text
     if (quotaText) {
       if (count >= quota) {
-        quotaText.innerHTML = `<strong>${count} / ${quota} Foto</strong> (Maksimal Kuota Terpenuhi ✅)`;
-        quotaText.style.color = '#3fb950';
+        quotaText.innerHTML = `<strong>${count} / ${quota} Foto</strong> (Maksimal Kuota Terpenuhi ✓)`;
+        quotaText.style.color = 'var(--success)';
       } else {
-        quotaText.innerHTML = `<strong>${count} / ${quota} Foto</strong> (Sisa Kuota: <strong>${remaining} foto</strong>)`;
+        quotaText.innerHTML = `<strong>${count} / ${quota} Foto</strong> (Sisa kuota: <strong>${remaining} foto</strong>)`;
         quotaText.style.color = 'var(--text-main)';
       }
     }
@@ -561,9 +592,11 @@ const PortalApp = {
     if (navPill) {
       navPill.textContent = `${count}/${quota}`;
       if (count >= quota) {
-        navPill.style.background = '#238636';
+        navPill.style.background = 'var(--success)';
+        navPill.style.color = '#ffffff';
       } else {
-        navPill.style.background = 'rgba(0, 0, 0, 0.25)';
+        navPill.style.background = '';
+        navPill.style.color = '';
       }
     }
   },
@@ -640,16 +673,18 @@ const PortalApp = {
     if (filename) filename.textContent = photo.name || 'Foto';
 
     if (noteDisplay) {
-      noteDisplay.textContent = note ? `📝 Catatan: ${note}` : '';
+      noteDisplay.textContent = note ? `✎ Catatan: ${note}` : '';
     }
 
     if (selectBtn) {
       if (isSelected) {
-        selectBtn.className = 'btn btn-secondary btn-sm';
+        selectBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+        selectBtn.style.color = '#ffffff';
         selectBtn.textContent = '✕ Batalkan Pilihan';
       } else {
-        selectBtn.className = 'btn btn-primary btn-sm';
-        selectBtn.textContent = '✓ Pilih Foto Ini';
+        selectBtn.style.background = '#ffffff';
+        selectBtn.style.color = '#1c1917';
+        selectBtn.textContent = '❤️ Pilih Foto Ini';
       }
     }
   },
@@ -696,7 +731,7 @@ const PortalApp = {
 
     if (noteText) {
       this.photoNotes[key] = noteText;
-      // If photo not selected yet, suggest auto-selecting it
+      // If photo not selected yet, auto-select it if quota allows
       if (!this.isPhotoSelected(this.currentNotePhoto) && this.selectedPhotos.length < this.selectionQuota) {
         this.selectedPhotos.push(key);
       }
@@ -746,7 +781,7 @@ const PortalApp = {
       return `
         <div class="photo-chip">
           <span>${this.escapeHtml(photo)}</span>
-          ${note ? `<span title="${this.escapeHtml(note)}" style="color: #fbbf24; cursor: pointer;" onclick="PortalApp.openNoteModalByKey('${this.escapeHtml(photo)}')">📝</span>` : ''}
+          ${note ? `<span title="${this.escapeHtml(note)}" style="color: var(--accent-gold); cursor: pointer;" onclick="PortalApp.openNoteModalByKey('${this.escapeHtml(photo)}')">✎</span>` : ''}
           <span class="chip-remove" onclick="PortalApp.removeChip(${index})" title="Hapus foto ini">&times;</span>
         </div>
       `;
@@ -785,7 +820,7 @@ const PortalApp = {
 
   removeChip(index) {
     if (index >= 0 && index < this.selectedPhotos.length) {
-      const removed = this.selectedPhotos.splice(index, 1)[0];
+      this.selectedPhotos.splice(index, 1);
       this.markUnsaved();
       this.renderQuota();
       this.renderGallery();
@@ -839,8 +874,8 @@ const PortalApp = {
     const unsavedBadge = document.getElementById('sticky-unsaved-badge');
 
     if (statusMsg) {
-      statusMsg.textContent = '⚠️ Ada pilihan/catatan belum disimpan. Klik tombol Simpan di bawah.';
-      statusMsg.style.color = '#e3b341';
+      statusMsg.textContent = 'Ada pilihan/catatan belum disimpan. Klik tombol Simpan di bawah.';
+      statusMsg.style.color = 'var(--accent-gold)';
     }
     if (unsavedBadge) unsavedBadge.style.display = 'inline-block';
   },
@@ -877,8 +912,8 @@ const PortalApp = {
 
       this.hasUnsavedChanges = false;
       if (statusMsg) {
-        statusMsg.textContent = '✅ Pilihan foto dan catatan Anda berhasil disimpan dan dikirim ke fotografer!';
-        statusMsg.style.color = '#3fb950';
+        statusMsg.textContent = 'Pilihan foto dan catatan Anda berhasil disimpan!';
+        statusMsg.style.color = 'var(--success)';
       }
       if (unsavedBadge) unsavedBadge.style.display = 'none';
 
@@ -912,11 +947,11 @@ const PortalApp = {
     } finally {
       if (saveBtn) {
         saveBtn.disabled = false;
-        saveBtn.textContent = '💾 Simpan Pilihan & Catatan Foto';
+        saveBtn.textContent = 'Simpan Pilihan & Catatan Foto';
       }
       if (stickySaveBtn) {
         stickySaveBtn.disabled = false;
-        stickySaveBtn.textContent = '💾 Simpan Pilihan Foto';
+        stickySaveBtn.textContent = 'Simpan Pilihan';
       }
     }
   },
@@ -996,7 +1031,7 @@ const PortalApp = {
           <tr style="border-top: 2px solid #222; font-size: 15px; font-weight: 800;">
             <td style="padding: 10px; text-align: right;">Sisa Tagihan:</td>
             <td style="padding: 10px; text-align: right; color: ${balance <= 0 ? '#16a34a' : '#dc2626'};">
-              ${balance <= 0 ? 'LUNAS (Rp 0) ✅' : this.formatIDR(balance)}
+              ${balance <= 0 ? 'LUNAS (Rp 0) ✓' : this.formatIDR(balance)}
             </td>
           </tr>
         </tbody>
@@ -1049,13 +1084,13 @@ const PortalApp = {
 
   getStatusLabel(status) {
     const map = {
-      inquiry: 'Inquiry / Tanya',
-      booked: 'Terjadwal',
-      dp_received: 'DP Diterima',
-      shooting_done: 'Selesai Pemotretan',
+      inquiry: 'Konsultasi & Tanya',
+      booked: 'Jadwal Terkonfirmasi',
+      dp_received: 'Uang Muka Diterima',
+      shooting_done: 'Sesi Foto Selesai',
       selection: 'Tahap Seleksi Foto',
       editing: 'Proses Retouching & Editing',
-      gallery_ready: '🎉 Galeri Siap Diunduh',
+      gallery_ready: 'Galeri Siap Diunduh',
       delivered: 'Berkas Dikirimkan',
       completed: 'Selesai'
     };
@@ -1076,13 +1111,13 @@ const PortalApp = {
     const container = document.querySelector('.portal-container');
     if (container) {
       container.innerHTML = `
-        <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: 14px; padding: 36px 20px; text-align: center; margin-top: 40px;">
-          <div style="font-size: 40px; margin-bottom: 12px;">🔍</div>
-          <h2 style="color: var(--danger-text); font-size: 20px; font-weight: 700;">Data Sesi Foto Tidak Ditemukan</h2>
-          <p style="color: var(--text-muted); font-size: 14px; margin-top: 8px; max-width: 440px; margin-left: auto; margin-right: auto;">
+        <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 48px 24px; text-align: center; margin-top: 40px; box-shadow: var(--shadow-card);">
+          <div style="font-size: 36px; margin-bottom: 12px;">📷</div>
+          <h2 style="color: var(--text-main); font-size: 20px; font-weight: 700;">Data Sesi Foto Tidak Ditemukan</h2>
+          <p style="color: var(--text-muted); font-size: 14px; margin-top: 8px; max-width: 440px; margin-left: auto; margin-right: auto; line-height: 1.5;">
             ${msg || 'Tautan yang Anda tuju salah atau data sesi foto belum tersedia.'}
           </p>
-          <a href="/" class="btn btn-secondary" style="margin-top: 20px;">
+          <a href="/" class="btn btn-secondary" style="margin-top: 24px;">
             &larr; Kembali ke Beranda
           </a>
         </div>

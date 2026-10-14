@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portal Sesi Foto - TEN Photography</title>
-  <meta name="description" content="Portal pemantauan alur kerja sesi foto, unduhan galeri, dan kurasi foto pilihan klien.">
+  <title>Portal Klien - TEN Photography</title>
+  <meta name="description" content="Portal kurasi foto pilihan klien, jadwal pemotretan, dan unduhan galeri.">
   <link rel="stylesheet" href="/portal/portal.css">
 </head>
 <body>
@@ -13,14 +13,14 @@
     <!-- Top Header Bar -->
     <header class="portal-header-bar">
       <div class="brand-badge" id="studio-name-display">TEN PHOTOGRAPHY</div>
-      <a href="/" target="_blank" style="font-size: 12px; color: var(--text-dim); text-decoration: none;">
-        fg.ten.my.id ↗
+      <a href="/" target="_blank" class="portal-header-link">
+        fg.ten.my.id &rarr;
       </a>
     </header>
 
     <!-- Loading State -->
-    <div id="portal-loader" style="text-align: center; padding: 60px 20px; color: var(--text-dim);">
-      <div style="font-size: 32px; margin-bottom: 12px;">⏳</div>
+    <div id="portal-loader" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+      <div style="font-size: 28px; margin-bottom: 12px;">⏳</div>
       <div>Memuat informasi sesi foto Anda...</div>
     </div>
 
@@ -28,56 +28,49 @@
     <main id="portal-content" style="display: none;">
       <!-- Hero Box -->
       <section class="portal-hero-box">
-        <span id="workflow-badge" class="badge badge-inquiry">-</span>
+        <div class="hero-status-row">
+          <span id="workflow-badge" class="badge badge-inquiry">-</span>
+        </div>
         <h1 id="project-title" class="portal-title">Sesi Foto</h1>
         <div id="client-name" class="portal-client">Klien</div>
 
         <div class="status-banner">
-          <div class="status-banner-title">
-            <span>📌</span>
-            <span>Status Progres Terkini</span>
-          </div>
+          <div class="status-banner-title">Status Pengerjaan</div>
           <div id="status-description" class="status-banner-desc">Memuat status pengerjaan...</div>
         </div>
       </section>
 
-      <!-- Segmented Navigation for Mobile & Desktop -->
+      <!-- Segmented Navigation Bar -->
       <nav class="portal-main-nav">
         <button type="button" class="portal-nav-tab active" data-portal-tab="selection" onclick="PortalApp.switchMainTab('selection')">
-          <span class="portal-tab-icon">📸</span>
           <span class="portal-tab-title">Pilih Foto</span>
           <span id="nav-quota-pill" class="portal-tab-pill">0/20</span>
         </button>
         <button type="button" class="portal-nav-tab" data-portal-tab="schedule" onclick="PortalApp.switchMainTab('schedule')">
-          <span class="portal-tab-icon">📅</span>
-          <span class="portal-tab-title">Jadwal</span>
+          <span class="portal-tab-title">Jadwal & Lokasi</span>
         </button>
         <button type="button" class="portal-nav-tab" data-portal-tab="payment" onclick="PortalApp.switchMainTab('payment')">
-          <span class="portal-tab-icon">💳</span>
           <span class="portal-tab-title">Pembayaran</span>
         </button>
         <button type="button" class="portal-nav-tab" data-portal-tab="downloads" onclick="PortalApp.switchMainTab('downloads')">
-          <span class="portal-tab-icon">📦</span>
-          <span class="portal-tab-title">Unduhan</span>
+          <span class="portal-tab-title">Unduhan Galeri</span>
         </button>
       </nav>
 
       <!-- TAB PANE: SELEKSI FOTO (PRIMARY FOCUS) -->
       <section id="tab-pane-selection" class="portal-tab-pane active">
         <div class="card" id="selection-section">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;">
-            <div>
-              <h2 class="card-title" style="margin-bottom: 2px;">🖼️ Galeri Seleksi Foto Pilihan</h2>
-              <p style="font-size: 12px; color: var(--text-muted);">
-                Ketuk foto untuk memilih. Gunakan 🔍 untuk melihat foto layar penuh atau 📝 untuk catatan instruksi edit.
-              </p>
-            </div>
+          <div>
+            <h2 class="card-title">Kurasi Foto Pilihan Anda</h2>
+            <p class="card-subtitle">
+              Ketuk foto untuk melihat tampilan penuh, atau klik ikon hati untuk memilih. Anda juga dapat menyematkan catatan khusus untuk instruksi retouching.
+            </p>
           </div>
 
           <!-- Quota Tracker -->
-          <div class="quota-box" style="margin-top: 10px;">
+          <div class="quota-box">
             <div class="quota-header">
-              <span style="font-weight: 600; color: #fff;">Kuota Pilihan Paket:</span>
+              <span style="font-weight: 600; color: var(--text-main);">Kuota Pilihan Paket:</span>
               <span id="quota-text">0 / 20 Foto</span>
             </div>
             <div class="quota-progress-bg">
@@ -91,7 +84,7 @@
               Semua Foto <span id="tab-count-all" class="photo-tab-badge">0</span>
             </button>
             <button type="button" class="photo-tab-btn" data-filter="selected">
-              ✓ Terpilih <span id="tab-count-selected" class="photo-tab-badge">0</span>
+              Terpilih <span id="tab-count-selected" class="photo-tab-badge">0</span>
             </button>
             <button type="button" class="photo-tab-btn" data-filter="unselected">
               Belum Dipilih <span id="tab-count-unselected" class="photo-tab-badge">0</span>
@@ -101,26 +94,26 @@
           <div class="photo-toolbar">
             <div class="photo-search-wrap">
               <span class="photo-search-icon">🔍</span>
-              <input type="text" id="photo-search-input" class="form-control" placeholder="Cari nama / nomor file foto...">
+              <input type="text" id="photo-search-input" class="form-control" placeholder="Cari nomor atau nama file foto...">
             </div>
-            <div style="display: flex; gap: 6px;">
+            <div style="display: flex; gap: 8px;">
               <button type="button" id="btn-toggle-manual-input" class="btn btn-secondary btn-sm" title="Mode input teks / nomor manual">
-                ✍️ Manual
+                Input Nomor Manual
               </button>
             </div>
           </div>
 
           <!-- Visual Photos Grid -->
-          <div id="photos-loading" style="text-align: center; padding: 36px 16px; color: var(--text-dim); display: none;">
-            <div style="font-size: 28px; margin-bottom: 8px;">🔄</div>
-            <div>Memuat foto dari Google Drive...</div>
+          <div id="photos-loading" style="text-align: center; padding: 40px 16px; color: var(--text-muted); display: none;">
+            <div style="font-size: 28px; margin-bottom: 8px;">⏳</div>
+            <div>Memuat galeri foto dari Google Drive...</div>
           </div>
 
-          <div id="photos-empty-state" style="display: none; text-align: center; padding: 32px 16px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); border-radius: 10px; margin-bottom: 16px;">
-            <div style="font-size: 32px; margin-bottom: 10px;">📸</div>
-            <div style="font-weight: 700; color: #fff; margin-bottom: 4px;">Galeri Foto Sedang Dipersiapkan</div>
-            <div id="photos-empty-desc" style="font-size: 13px; color: var(--text-muted); max-width: 480px; margin: 0 auto;">
-              Fotografer belum mensinkronkan berkas foto atau sedang mengunggah foto ke Google Drive.
+          <div id="photos-empty-state" style="display: none; text-align: center; padding: 36px 20px; background: var(--bg-muted); border: 1px dashed var(--border); border-radius: var(--radius-md); margin-bottom: 20px;">
+            <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
+            <div style="font-weight: 700; color: var(--text-main); margin-bottom: 4px;">Galeri Foto Sedang Dipersiapkan</div>
+            <div id="photos-empty-desc" style="font-size: 13px; color: var(--text-muted); max-width: 460px; margin: 0 auto;">
+              Fotografer sedang memproses atau mengunggah berkas foto ke Google Drive.
             </div>
           </div>
 
@@ -129,15 +122,15 @@
           </div>
 
           <!-- Manual Chip Input (Collapsible Fallback) -->
-          <div id="manual-chip-box" style="display: none; background: rgba(0,0,0,0.25); padding: 12px; border: 1px dashed var(--border); border-radius: 8px; margin-bottom: 16px;">
-            <div style="font-size: 12px; font-weight: 600; color: var(--text-dim); margin-bottom: 8px;">Input Nomor Foto Manual (Alternatif):</div>
+          <div id="manual-chip-box" style="display: none; background: var(--bg-muted); padding: 14px; border: 1px dashed var(--border); border-radius: var(--radius-sm); margin-bottom: 18px;">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">Input Nomor Foto Manual (Alternatif):</div>
             <div class="input-chip-row">
               <input type="text" id="chip-input" class="form-control" placeholder="Ketik nomor foto (misal: 023 atau IMG_023)...">
               <button type="button" id="btn-add-chip" class="btn btn-primary" style="white-space: nowrap;">
                 + Tambah
               </button>
               <button type="button" id="btn-paste-chips" class="btn btn-secondary" style="white-space: nowrap;" title="Tempelkan banyak nomor sekaligus">
-                📋 Tempel
+                Tempel Nomor
               </button>
             </div>
             <div id="chips-container" class="chips-container">
@@ -146,10 +139,10 @@
           </div>
 
           <!-- Action / Save Section -->
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
-            <div id="save-status-msg" style="font-size: 13px; font-weight: 600; color: var(--text-dim);"></div>
-            <button type="button" id="btn-save-selection" class="btn btn-success" style="padding: 10px 20px; font-size: 14px;">
-              💾 Simpan Pilihan & Catatan Foto
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+            <div id="save-status-msg" style="font-size: 13px; font-weight: 600; color: var(--text-muted);"></div>
+            <button type="button" id="btn-save-selection" class="btn btn-primary" style="padding: 11px 24px;">
+              Simpan Pilihan & Catatan Foto
             </button>
           </div>
         </div>
@@ -158,7 +151,9 @@
       <!-- TAB PANE: JADWAL & LOKASI -->
       <section id="tab-pane-schedule" class="portal-tab-pane" style="display: none;">
         <div class="card">
-          <h2 class="card-title">📅 Detail Jadwal & Lokasi Sesi Foto</h2>
+          <h2 class="card-title">Jadwal & Lokasi Sesi Foto</h2>
+          <p class="card-subtitle">Informasi waktu pelaksanaan dan detail tempat pemotretan Anda.</p>
+
           <div class="info-grid">
             <div class="info-item">
               <div class="info-item-label">Hari & Tanggal</div>
@@ -170,10 +165,10 @@
             </div>
             <div class="info-item" style="grid-column: 1/-1;">
               <div class="info-item-label">Lokasi Pemotretan</div>
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; flex-wrap: wrap; gap: 8px;">
-                <div id="session-location" style="font-weight: 600; color: #fff; font-size: 15px;">-</div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; flex-wrap: wrap; gap: 10px;">
+                <div id="session-location" style="font-weight: 600; color: var(--text-main); font-size: 15px;">-</div>
                 <a id="session-maps-btn" href="#" target="_blank" class="btn btn-secondary btn-sm" style="display: none;">
-                  🗺️ Buka di Google Maps
+                  Buka di Google Maps &rarr;
                 </a>
               </div>
             </div>
@@ -184,35 +179,39 @@
       <!-- TAB PANE: PEMBAYARAN -->
       <section id="tab-pane-payment" class="portal-tab-pane" style="display: none;">
         <div class="card">
-          <h2 class="card-title">💳 Rincian Pembayaran</h2>
-          <div class="payment-row">
-            <span>Total Biaya Sesi:</span>
-            <strong id="pay-total">Rp 0</strong>
-          </div>
-          <div class="payment-row">
-            <span>Uang Muka (DP) Masuk:</span>
-            <span id="pay-dp" style="color: #60a5fa; font-weight: 600;">Rp 0</span>
-          </div>
-          <div class="payment-total-row">
-            <span>Sisa Tagihan:</span>
-            <span id="pay-balance" style="color: #3fb950;">Rp 0</span>
-          </div>
+          <h2 class="card-title">Rincian Pembayaran</h2>
+          <p class="card-subtitle">Status pelunasan dan rekening resmi untuk pembayaran sesi foto.</p>
 
-          <div id="bank-info-box" style="margin-top: 14px; padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; font-size: 13px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <div style="color: var(--text-dim); font-size: 11px; text-transform: uppercase; font-weight: 700;">Rekening Transfer Pembayaran:</div>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="PortalApp.copyBankAccount()" style="font-size: 11px; padding: 2px 8px;">📋 Salin No. Rekening</button>
+          <div style="margin-top: 14px;">
+            <div class="payment-row">
+              <span>Total Nilai Sesi:</span>
+              <strong id="pay-total">Rp 0</strong>
             </div>
-            <div id="bank-name-account" style="font-weight: 700; color: #fff; font-size: 15px;">-</div>
-            <div id="bank-holder" style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">-</div>
+            <div class="payment-row">
+              <span>Uang Muka (DP) Terbayar:</span>
+              <span id="pay-dp" style="font-weight: 600; color: var(--text-main);">Rp 0</span>
+            </div>
+            <div class="payment-total-row">
+              <span>Sisa Tagihan:</span>
+              <span id="pay-balance" style="color: var(--success);">Rp 0</span>
+            </div>
           </div>
 
-          <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
-            <a id="btn-confirm-payment-wa" href="#" target="_blank" class="btn btn-success" style="flex: 1; min-width: 180px; text-align: center; text-decoration: none; padding: 10px 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-              <span>💬</span> Konfirmasi Transfer via WA
+          <div id="bank-info-box" class="bank-info-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="color: var(--text-dim); font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Rekening Resmi Transfer:</div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="PortalApp.copyBankAccount()" style="font-size: 11px; padding: 3px 10px;" id="btn-copy-bank">Salin No. Rekening</button>
+            </div>
+            <div id="bank-name-account" style="font-weight: 700; color: var(--text-main); font-size: 16px;">-</div>
+            <div id="bank-holder" style="color: var(--text-muted); font-size: 13px; margin-top: 2px;">-</div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap;">
+            <a id="btn-confirm-payment-wa" href="#" target="_blank" class="btn btn-success" style="flex: 1; min-width: 180px; text-decoration: none; padding: 11px 16px; font-size: 13px;">
+              Konfirmasi Transfer via WhatsApp
             </a>
-            <button type="button" class="btn btn-secondary" onclick="PortalApp.openInvoiceModal()" style="padding: 10px 14px; font-size: 13px;">
-              🖨️ Lihat Kwitansi Digital
+            <button type="button" class="btn btn-secondary" onclick="PortalApp.openInvoiceModal()" style="padding: 11px 16px; font-size: 13px;">
+              Lihat Kwitansi Digital
             </button>
           </div>
         </div>
@@ -221,28 +220,29 @@
       <!-- TAB PANE: UNDUHAN FINAL GOOGLE DRIVE -->
       <section id="tab-pane-downloads" class="portal-tab-pane" style="display: none;">
         <div class="card">
-          <h2 class="card-title">📦 Unduhan Galeri Foto / Google Drive</h2>
-          <div id="drive-box-content">
+          <h2 class="card-title">Unduhan Galeri Foto Final</h2>
+          <p class="card-subtitle">Berkas foto resolusi tinggi yang telah selesai diproses.</p>
+          <div id="drive-box-content" style="margin-top: 14px;">
             <!-- Loaded via JS -->
           </div>
         </div>
       </section>
 
       <!-- Action Footer -->
-      <div style="text-align: center; margin-top: 24px;">
-        <a id="btn-wa-photographer" href="#" target="_blank" class="btn btn-secondary" style="padding: 12px 24px; font-size: 14px;">
-          💬 Hubungi Fotografer via WhatsApp
+      <div style="text-align: center; margin-top: 28px;">
+        <a id="btn-wa-photographer" href="#" target="_blank" class="btn btn-secondary" style="padding: 11px 22px; font-size: 14px;">
+          Hubungi Fotografer via WhatsApp
         </a>
       </div>
 
-      <!-- Sticky Floating Bottom Bar for Quick Action -->
+      <!-- Sticky Floating Capsule for Quick Action -->
       <div id="portal-sticky-bar" class="portal-sticky-bar" style="display: none;">
         <div>
-          <span style="font-weight: 700; color: #fff;" id="sticky-quota-text">0 / 20 Foto Terpilih</span>
-          <span id="sticky-unsaved-badge" style="display: none; font-size: 11px; background: #e3b341; color: #000; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 8px;">Ada Perubahan</span>
+          <span id="sticky-quota-text" class="sticky-quota-text">0 / 20 Foto Terpilih</span>
+          <span id="sticky-unsaved-badge" class="sticky-unsaved-badge" style="display: none;">Belum Disimpan</span>
         </div>
-        <button type="button" id="btn-sticky-save" class="btn btn-success btn-sm" style="padding: 8px 16px;">
-          💾 Simpan Pilihan Foto
+        <button type="button" id="btn-sticky-save" class="btn btn-primary btn-sm">
+          Simpan Pilihan
         </button>
       </div>
 
@@ -252,10 +252,10 @@
     </main>
   </div>
 
-  <!-- Fullscreen Lightbox Modal -->
+  <!-- Fullscreen Lightbox Modal (Cinema Mode) -->
   <div id="lightbox-modal" class="lightbox-modal">
     <div class="lightbox-header">
-      <div id="lightbox-counter" style="font-weight: 600;">Foto 1 / 10</div>
+      <div id="lightbox-counter" class="lightbox-counter">Foto 1 / 10</div>
       <button type="button" id="lightbox-close" class="lightbox-close-btn" title="Tutup (Esc)">&times;</button>
     </div>
 
@@ -269,15 +269,15 @@
     <div class="lightbox-footer">
       <div class="lightbox-footer-row">
         <div>
-          <div id="lightbox-filename" style="font-weight: 700; color: #fff; font-size: 14px;">-</div>
-          <div id="lightbox-note-display" style="font-size: 12px; color: #fbbf24; margin-top: 2px;"></div>
+          <div id="lightbox-filename" class="lightbox-filename">-</div>
+          <div id="lightbox-note-display" class="lightbox-note-display"></div>
         </div>
         <div style="display: flex; gap: 8px;">
-          <button type="button" id="lightbox-note-btn" class="btn btn-secondary btn-sm">
-            📝 Beri Catatan
+          <button type="button" id="lightbox-note-btn" class="btn btn-secondary btn-sm" style="background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2);">
+            Catatan Foto
           </button>
-          <button type="button" id="lightbox-select-btn" class="btn btn-primary btn-sm">
-            ✓ Pilih Foto Ini
+          <button type="button" id="lightbox-select-btn" class="btn btn-primary btn-sm" style="background: #ffffff; color: #1c1917;">
+            Pilih Foto Ini
           </button>
         </div>
       </div>
@@ -288,55 +288,52 @@
   <div id="note-modal" class="note-modal">
     <div class="note-modal-card">
       <div class="note-modal-header">
-        <div class="note-modal-title">
-          <span>📝</span>
-          <span>Catatan Khusus Foto</span>
-        </div>
-        <button type="button" id="note-modal-close" class="lightbox-close-btn" style="width: 32px; height: 32px; font-size: 16px;">&times;</button>
+        <div class="note-modal-title">Catatan Instruksi Foto</div>
+        <button type="button" id="note-modal-close" class="lightbox-close-btn" style="width: 32px; height: 32px; font-size: 16px; color: var(--text-main); background: var(--bg-muted); border-color: var(--border);">&times;</button>
       </div>
       <div class="note-modal-body">
         <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 14px;">
-          <img id="note-photo-thumb" src="" alt="" style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
+          <img id="note-photo-thumb" src="" alt="" style="width: 54px; height: 54px; object-fit: cover; border-radius: var(--radius-xs); border: 1px solid var(--border);">
           <div>
-            <div id="note-photo-name" style="font-weight: 700; color: #fff; font-size: 13px;">IMG_0001.JPG</div>
-            <div style="font-size: 11px; color: var(--text-dim);">Berikan instruksi edit foto kepada fotografer</div>
+            <div id="note-photo-name" style="font-weight: 700; color: var(--text-main); font-size: 13px;">IMG_0001.JPG</div>
+            <div style="font-size: 12px; color: var(--text-muted);">Sampaikan catatan retouch atau editing untuk foto ini</div>
           </div>
         </div>
 
         <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">
           Instruksi Edit / Keterangan:
         </label>
-        <textarea id="note-modal-textarea" class="form-control" rows="3" placeholder="Contoh: Tolong hilangkan jerawat di pipi kiri, crop vertikal 4:5, buat suasana warna lebih hangat..."></textarea>
+        <textarea id="note-modal-textarea" class="form-control" rows="3" placeholder="Contoh: Tolong haluskan noda di wajah, crop vertikal 4:5, buat suasana warna lebih hangat..."></textarea>
 
-        <div style="font-size: 11px; color: var(--text-dim); margin-top: 10px; margin-bottom: 4px;">Saran Catatan Cepat (Klik untuk menambahkan):</div>
+        <div style="font-size: 11px; color: var(--text-dim); margin-top: 10px; margin-bottom: 6px;">Saran Catatan Cepat:</div>
         <div class="quick-tags-container">
-          <button type="button" class="quick-tag-btn" data-tag="Retouch Kulit & Jerawat">✨ Retouch Kulit</button>
-          <button type="button" class="quick-tag-btn" data-tag="Crop 4:5 (Instagram)">📐 Crop 4:5</button>
-          <button type="button" class="quick-tag-btn" data-tag="Hitam Putih (B&W)">🎞️ Hitam Putih</button>
-          <button type="button" class="quick-tag-btn" data-tag="Hapus Objek Mengganggu">🧹 Bersihkan Objek</button>
-          <button type="button" class="quick-tag-btn" data-tag="Cerahkan Wajah">☀️ Cerahkan Wajah</button>
-          <button type="button" class="quick-tag-btn" data-tag="Tone Warna Hangat (Warm)">🔥 Warm Tone</button>
+          <button type="button" class="quick-tag-btn" data-tag="Retouch Wajah & Kulit">Retouch Kulit</button>
+          <button type="button" class="quick-tag-btn" data-tag="Crop 4:5 (Instagram)">Crop 4:5</button>
+          <button type="button" class="quick-tag-btn" data-tag="Hitam Putih (B&W)">Hitam Putih</button>
+          <button type="button" class="quick-tag-btn" data-tag="Bersihkan Objek di Latar">Bersihkan Objek</button>
+          <button type="button" class="quick-tag-btn" data-tag="Cerahkan Wajah">Cerahkan Wajah</button>
+          <button type="button" class="quick-tag-btn" data-tag="Tone Warna Hangat (Warm)">Warm Tone</button>
         </div>
       </div>
       <div class="note-modal-footer">
         <button type="button" id="note-modal-cancel" class="btn btn-secondary btn-sm">Batal</button>
-        <button type="button" id="note-modal-save" class="btn btn-primary btn-sm">💾 Simpan Catatan</button>
+        <button type="button" id="note-modal-save" class="btn btn-primary btn-sm">Simpan Catatan</button>
       </div>
     </div>
   </div>
 
   <!-- Modal Konfirmasi Pilihan Disimpan & Kirim WA -->
   <div id="modal-saved-confirm" class="note-modal" style="display: none;">
-    <div class="note-modal-card" style="text-align: center; max-width: 440px;">
-      <div style="font-size: 42px; margin-bottom: 8px;">🎉</div>
-      <h3 style="font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 6px;">Pilihan Foto Berhasil Disimpan!</h3>
-      <p id="saved-confirm-desc" style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 18px;">
-        Pilihan foto dan instruksi khusus Anda telah tersimpan di sistem fotografer.
+    <div class="note-modal-card" style="text-align: center; max-width: 440px; padding: 28px 24px;">
+      <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--success-soft); color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 14px;">✓</div>
+      <h3 style="font-size: 19px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">Pilihan Foto Berhasil Disimpan</h3>
+      <p id="saved-confirm-desc" style="font-size: 14px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px;">
+        Pilihan foto dan catatan instruksi Anda telah aman tersimpan di sistem fotografer.
       </p>
 
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <a id="btn-saved-notify-wa" href="#" target="_blank" class="btn btn-success" style="padding: 12px 18px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
-          <span>💬</span> Kabari Fotografer via WhatsApp
+        <a id="btn-saved-notify-wa" href="#" target="_blank" class="btn btn-success" style="padding: 12px 18px; font-weight: 600; text-decoration: none;">
+          Kabari Fotografer via WhatsApp
         </a>
         <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-saved-confirm').style.display='none'">
           Kembali ke Galeri
@@ -347,16 +344,16 @@
 
   <!-- Digital Invoice / Receipt Modal for Client Portal -->
   <div id="portal-invoice-modal" class="note-modal" style="display: none;">
-    <div class="note-modal-card" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
-      <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-        <div style="font-weight: 700; color: #fff;">🧾 Kwitansi & Rincian Pembayaran</div>
+    <div class="note-modal-card" style="max-width: 620px; max-height: 90vh; overflow-y: auto;">
+      <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--bg-muted);">
+        <div style="font-weight: 700; color: var(--text-main);">Kwitansi & Rincian Pembayaran</div>
         <div style="display: flex; gap: 8px;">
-          <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
-          <button type="button" class="lightbox-close-btn" style="width: 30px; height: 30px; font-size: 16px;" onclick="PortalApp.closeInvoiceModal()">&times;</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">Cetak / Simpan PDF</button>
+          <button type="button" class="lightbox-close-btn" style="width: 30px; height: 30px; font-size: 16px; color: var(--text-main); background: var(--bg-surface); border-color: var(--border);" onclick="PortalApp.closeInvoiceModal()">&times;</button>
         </div>
       </div>
 
-      <div id="portal-invoice-content" style="background: #fff; color: #111; padding: 24px; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <div id="portal-invoice-content" style="background: #ffffff; color: #111111; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         <!-- Rendered dynamically by JS -->
       </div>
     </div>
