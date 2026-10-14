@@ -1,9 +1,8 @@
-// Public Client Website Controller - Focused & Functional
+// Public Client Website & Landing Page Controller - fg.ten.my.id
 const PublicApp = {
-  currentTab: 'track',
   studio: {
     studioName: 'TEN Photography',
-    tagline: 'Visual Storyteller & Professional Photography',
+    tagline: 'Visual Storyteller & Professional Photography Services',
     phone: '',
     email: '',
     instagram: '@tenphotography',
@@ -24,19 +23,20 @@ const PublicApp = {
     const urlParams = new URLSearchParams(window.location.search);
     const portalId = urlParams.get('portal') || urlParams.get('id');
     if (portalId) {
-      // Redirect directly to the dedicated clean portal page
+      // Redirect directly to the dedicated client portal
       window.location.replace(`/portal?id=${portalId}`);
     }
   },
 
   bindEvents() {
-    // Navigation Tabs
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const tab = e.currentTarget.dataset.tab;
-        this.switchTab(tab);
+    // Mobile Drawer Toggle
+    const toggleBtn = document.getElementById('btn-mobile-toggle');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        const drawer = document.getElementById('mobile-menu-drawer');
+        if (drawer) drawer.classList.toggle('open');
       });
-    });
+    }
 
     // Tracking Form Submit
     const trackForm = document.getElementById('public-track-form');
@@ -63,14 +63,9 @@ const PublicApp = {
     }
   },
 
-  switchTab(tabName) {
-    this.currentTab = tabName;
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tab === tabName);
-    });
-    document.querySelectorAll('.tab-content').forEach(section => {
-      section.style.display = section.id === `tab-${tabName}` ? 'block' : 'none';
-    });
+  closeMobileMenu() {
+    const drawer = document.getElementById('mobile-menu-drawer');
+    if (drawer) drawer.classList.remove('open');
   },
 
   async loadStudioInfo() {
@@ -104,7 +99,7 @@ const PublicApp = {
       let cleanPhone = s.phone.replace(/\D/g, '');
       if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.substring(1);
       waLinks.forEach(el => {
-        el.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent('Halo, saya ingin menanyakan jadwal/paket foto.')}`;
+        el.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent('Halo, saya ingin berkonsultasi mengenai jadwal & paket sesi foto.')}`;
       });
     }
   },
@@ -129,7 +124,11 @@ const PublicApp = {
     if (!container) return;
 
     if (packages.length === 0) {
-      container.innerHTML = '<div style="color: var(--text-dim); text-align: center; grid-column: 1/-1; padding: 30px 0;">Belum ada paket aktif. Hubungi kami via WhatsApp untuk paket khusus.</div>';
+      container.innerHTML = `
+        <div style="color: var(--text-muted); text-align: center; grid-column: 1/-1; padding: 30px 0;">
+          Katalog paket foto sedang diperbarui. Hubungi kami via WhatsApp untuk penawaran paket kustom.
+        </div>
+      `;
       return;
     }
 
@@ -138,9 +137,9 @@ const PublicApp = {
         <div class="package-badge">${this.escapeHtml(p.category || 'Fotografi')}</div>
         <h3 class="package-name">${this.escapeHtml(p.name)}</h3>
         <div class="package-price">${this.formatIDR(p.price)}</div>
-        <div class="package-desc">${this.escapeHtml(p.description || 'Layanan pemotretan profesional.')}</div>
-        <button type="button" class="btn btn-primary btn-sm" style="width: 100%; margin-top: auto;" onclick="PublicApp.selectPackageForBooking('${p.id}', '${this.escapeHtml(p.category)}')">
-          Pilih & Booking Jadwal
+        <div class="package-desc">${this.escapeHtml(p.description || 'Layanan pemotretan profesional dengan editing warna artistik.')}</div>
+        <button type="button" class="btn btn-primary btn-sm" style="width: 100%; margin-top: auto;" onclick="PublicApp.selectPackageForBooking('${p.id}', '${this.escapeHtml(p.category || 'Wedding')}')">
+          Pilih Paket & Booking &rarr;
         </button>
       </div>
     `).join('');
@@ -161,8 +160,15 @@ const PublicApp = {
     packageSelect.innerHTML = html;
   },
 
+  quickSelectCategory(category) {
+    const catSelect = document.getElementById('book-category');
+    if (catSelect && category) {
+      catSelect.value = category;
+      this.filterPackagesByCategory();
+    }
+  },
+
   selectPackageForBooking(packageId, category) {
-    this.switchTab('booking');
     const catSelect = document.getElementById('book-category');
     if (catSelect && category) {
       catSelect.value = category;
@@ -173,6 +179,12 @@ const PublicApp = {
       pkgSelect.value = packageId;
     }
     this.onPackageSelected();
+
+    // Smooth scroll to booking section
+    const bookingSection = document.getElementById('reservasi');
+    if (bookingSection) {
+      bookingSection.scrollIntoView({ behavior: 'smooth' });
+    }
   },
 
   onPackageSelected() {
@@ -200,7 +212,7 @@ const PublicApp = {
 
     try {
       btn.disabled = true;
-      btn.textContent = 'Mencari...';
+      btn.textContent = 'Mencari Data Sesi...';
 
       const res = await fetch(`/api/public/track?q=${encodeURIComponent(query)}`);
       const data = await res.json();
@@ -208,8 +220,8 @@ const PublicApp = {
       if (!res.ok || !data.found) {
         resultBox.style.display = 'block';
         resultBox.innerHTML = `
-          <div style="background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.3); border-radius: 8px; padding: 12px; color: #ff7b72; font-size: 13px; margin-top: 14px;">
-            ${data.message || 'Data sesi tidak ditemukan. Periksa kembali nomor WA atau ID Sesi Anda.'}
+          <div class="track-error-card">
+            ⚠️ ${data.message || 'Data sesi tidak ditemukan. Periksa kembali nomor WhatsApp atau ID Sesi Anda.'}
           </div>
         `;
         return;
@@ -222,10 +234,14 @@ const PublicApp = {
 
       resultBox.style.display = 'block';
       resultBox.innerHTML = `
-        <div style="background: rgba(35, 134, 54, 0.15); border: 1px solid rgba(46, 160, 67, 0.4); border-radius: 8px; padding: 14px; margin-top: 14px; text-align: left;">
-          <div style="font-weight: 700; color: #fff; font-size: 15px;">✅ Sesi Ditemukan: ${this.escapeHtml(data.title)}</div>
-          <div style="color: var(--text-muted); font-size: 13px; margin: 4px 0 10px;">Klien: ${this.escapeHtml(data.clientName)} | Tanggal: ${data.date ? this.formatDate(data.date) : 'TBD'}</div>
-          <a href="${portalUrl}" target="_blank" class="btn btn-primary btn-sm" style="display: inline-flex;">
+        <div class="track-success-card">
+          <div>
+            <div style="font-weight: 700; color: var(--text-main); font-size: 15px;">✓ Sesi Ditemukan: ${this.escapeHtml(data.title)}</div>
+            <div style="color: var(--text-muted); font-size: 13px; margin-top: 3px;">
+              Klien: <strong>${this.escapeHtml(data.clientName)}</strong> &bull; Tanggal: ${data.date ? this.formatDate(data.date) : 'TBD'}
+            </div>
+          </div>
+          <a href="${portalUrl}" target="_blank" class="btn btn-primary btn-sm" style="white-space: nowrap;">
             Buka Portal Sesi di Tab Baru ↗
           </a>
         </div>
@@ -234,7 +250,7 @@ const PublicApp = {
       alert('Gagal mencari sesi: ' + err.message);
     } finally {
       btn.disabled = false;
-      btn.textContent = '🔍 Lacak & Buka Portal Sesi';
+      btn.textContent = 'Lacak Sesi Saya →';
     }
   },
 
@@ -248,7 +264,6 @@ const PublicApp = {
     const payload = {
       name: document.getElementById('book-name').value.trim(),
       phone: document.getElementById('book-phone').value.trim(),
-      email: document.getElementById('book-email')?.value.trim() || '',
       category: document.getElementById('book-category')?.value || 'Wedding',
       packageId: pkgSelect?.value || '',
       packageName: opt ? opt.textContent.split(' - ')[0] : '',
@@ -266,7 +281,7 @@ const PublicApp = {
 
     try {
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Mengirim Reservasi...';
+      submitBtn.textContent = 'Mengirim Permintaan Reservasi...';
 
       const res = await fetch('/api/public/book', {
         method: 'POST',
@@ -286,7 +301,7 @@ const PublicApp = {
       alert(err.message);
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = '🚀 Kirim Permintaan Reservasi';
+      submitBtn.textContent = 'Kirim Formulir Reservasi & Diskusikan via WA →';
     }
   },
 
