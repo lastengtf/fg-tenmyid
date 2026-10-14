@@ -702,9 +702,20 @@ const App = {
         document.getElementById('proj-selection-quota').value = p.selectionQuota || 20;
         document.getElementById('proj-selected-photos').value = p.selectedPhotos || '';
 
+        const syncStatusEl = document.getElementById('sync-drive-status');
+        if (syncStatusEl) {
+          const photoCount = Array.isArray(p.drivePhotos) ? p.drivePhotos.length : 0;
+          if (photoCount > 0) {
+            syncStatusEl.innerHTML = `<span style="color: #3fb950; font-weight: 600;">✅ ${photoCount} foto tersinkronkan dari Google Drive.</span>`;
+          } else {
+            syncStatusEl.textContent = '💡 Klien akan melihat foto visual langsung di portal mereka tanpa membuka Google Drive asli.';
+          }
+        }
+
         this.renderShotlist();
         this.renderGearList();
         this.renderExpenses();
+        this.renderSelectedPhotosVisual();
         this.updateExpenseCalculations();
       });
     } else {
@@ -713,16 +724,22 @@ const App = {
       if (btnWA) btnWA.style.display = 'none';
 
       document.getElementById('proj-selection-quota').value = 20;
+      const syncStatusEl = document.getElementById('sync-drive-status');
+      if (syncStatusEl) syncStatusEl.textContent = '💡 Klien akan melihat foto visual langsung di portal mereka tanpa membuka Google Drive asli.';
+
       this.currentProject = {
         shotlist: [],
         gearChecklist: [],
         expenses: [],
         selectionQuota: 20,
-        selectedPhotos: ''
+        selectedPhotos: '',
+        photoNotes: {},
+        drivePhotos: []
       };
       this.renderShotlist();
       this.renderGearList();
       this.renderExpenses();
+      this.renderSelectedPhotosVisual();
       this.updateExpenseCalculations();
     }
 
@@ -759,7 +776,9 @@ const App = {
       gearChecklist: this.currentProject ? this.currentProject.gearChecklist || [] : [],
       expenses: this.currentProject ? this.currentProject.expenses || [] : [],
       selectionQuota: Number(document.getElementById('proj-selection-quota')?.value) || 20,
-      selectedPhotos: document.getElementById('proj-selected-photos').value || ''
+      selectedPhotos: document.getElementById('proj-selected-photos').value || '',
+      drivePhotos: this.currentProject ? this.currentProject.drivePhotos || [] : [],
+      photoNotes: this.currentProject ? this.currentProject.photoNotes || {} : {}
     };
 
     try {
@@ -1022,6 +1041,166 @@ const App = {
     }
     navigator.clipboard.writeText(txt);
     this.toast('Nomor foto disalin ke clipboard! Siap di-paste ke Lightroom/Photo Mechanic.', 'success');
+  },
+
+  renderSelectedPhotosVisual() {
+    const container = document.getElementById('proj-selected-visual-container');
+    if (!container) return;
+
+    const p = this.currentProject || {};
+    const raw = document.getElementById('proj-selected-photos')?.value || p.selectedPhotos || '';
+    const list = raw.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    const drivePhotos = Array.isArray(p.drivePhotos) ? p.drivePhotos : [];
+    const notes = p.photoNotes || {};
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div style="color: var(--text-dim); font-size: 12px; padding: 14px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); border-radius: 8px; text-align: center;">
+          Belum ada foto yang dipilih oleh klien. Bagikan tautan portal agar klien dapat memilih foto secara visual.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 6px;">
+        ${list.map((photoName, idx) => {
+          const match = drivePhotos.find(dp => dp.name === photoName || dp.id === photoName);
+          const thumbUrl = match ? (match.thumbnailUrl || `https://lh3.googleusercontent.com/d/${match.id}=w600-h600`) : '';
+          const note = notes[photoName] || (match ? notes[match.id] : '') || '';
+
+          return `
+            <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; padding: 6px; font-size: 11px;">
+              <div style="width: 100%; height: 90px; background: #090d13; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
+                ${thumbUrl ? `
+                  <img src="${thumbUrl}" alt="${this.escapeHtml(photoName)}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                ` : `
+                  <span style="color: var(--text-dim); font-size: 20px;">🖼️</span>
+                `}
+                <span style="position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.7); color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 3px;">#${idx + 1}</span>
+              </div>
+              <div style="font-weight: 700; color: #fff; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${this.escapeHtml(photoName)}">
+                ${this.escapeHtml(photoName)}
+              </div>
+              ${note ? `
+                <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; font-size: 10px; padding: 3px 6px; border-radius: 4px; margin-top: 4px; line-height: 1.2;" title="${this.escapeHtml(note)}">
+                  📝 ${this.escapeHtml(note)}
+                </div>
+              ` : `
+                <div style="color: var(--text-dim); font-size: 10px; margin-top: 2px;">Tanpa catatan</div>
+              `}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  },
+
+  async syncDrivePhotos() {
+    const projectId = document.getElementById('proj-id')?.value;
+    const driveUrl = document.getElementById('proj-drive-url')?.value.trim();
+    const syncStatusEl = document.getElementById('sync-drive-status');
+    const syncBtn = document.getElementById('btn-sync-drive');
+
+    if (!driveUrl) {
+      alert('Masukkan link folder Google Drive terlebih dahulu.');
+      return;
+    }
+
+    if (!projectId) {
+      alert('Simpan proyek terlebih dahulu sebelum melakukan sinkronisasi Google Drive.');
+      return;
+    }
+
+    try {
+      if (syncBtn) {
+        syncBtn.disabled = true;
+        syncBtn.textContent = 'Menghubungkan...';
+      }
+      if (syncStatusEl) {
+        syncStatusEl.innerHTML = '<span style="color: #60a5fa;">⏳ Mengambil daftar foto dari Google Drive...</span>';
+      }
+
+      const res = await API.syncDrivePhotos(projectId, driveUrl);
+      if (res.photos && Array.isArray(res.photos)) {
+        if (!this.currentProject) this.currentProject = {};
+        this.currentProject.drivePhotos = res.photos;
+        if (syncStatusEl) {
+          syncStatusEl.innerHTML = `<span style="color: #3fb950; font-weight: 600;">✅ Berhasil mensinkronkan ${res.photos.length} foto dari Google Drive!</span>`;
+        }
+        this.toast(`Berhasil mensinkronkan ${res.photos.length} foto!`, 'success');
+        this.renderSelectedPhotosVisual();
+      } else {
+        if (syncStatusEl) {
+          syncStatusEl.innerHTML = `<span style="color: #e3b341;">⚠️ ${res.message || 'Tidak ada foto ditemukan.'}</span>`;
+        }
+      }
+    } catch (err) {
+      if (syncStatusEl) {
+        syncStatusEl.innerHTML = `<span style="color: var(--danger-text);">❌ ${err.message}</span>`;
+      }
+      this.toast(err.message, 'error');
+    } finally {
+      if (syncBtn) {
+        syncBtn.disabled = false;
+        syncBtn.textContent = '⚡ Sinkronkan Foto';
+      }
+    }
+  },
+
+  openClientPortalFromModal() {
+    const id = document.getElementById('proj-id')?.value;
+    if (!id) {
+      alert('Simpan proyek terlebih dahulu.');
+      return;
+    }
+    const origin = window.location.origin;
+    window.open(`${origin}/portal?id=${id}`, '_blank');
+  },
+
+  // --- SETTINGS VIEW ---
+  async loadSettings() {
+    try {
+      const res = await API.getSettings();
+      const s = res.settings || {};
+      this.settings = s;
+
+      document.getElementById('setting-studioName').value = s.studioName || '';
+      document.getElementById('setting-phone').value = s.phone || '';
+      document.getElementById('setting-email').value = s.email || '';
+      document.getElementById('setting-instagram').value = s.instagram || '';
+      document.getElementById('setting-bankName').value = s.bankName || '';
+      document.getElementById('setting-bankAccount').value = s.bankAccount || '';
+      document.getElementById('setting-bankHolder').value = s.bankHolder || '';
+
+      const apiKeyEl = document.getElementById('setting-googleDriveApiKey');
+      if (apiKeyEl) apiKeyEl.value = s.googleDriveApiKey || '';
+    } catch (err) {
+      this.toast('Gagal memuat pengaturan: ' + err.message, 'error');
+    }
+  },
+
+  async handleSaveSettings(e) {
+    e.preventDefault();
+    const apiKeyEl = document.getElementById('setting-googleDriveApiKey');
+    const payload = {
+      studioName: document.getElementById('setting-studioName').value.trim(),
+      phone: document.getElementById('setting-phone').value.trim(),
+      email: document.getElementById('setting-email').value.trim(),
+      instagram: document.getElementById('setting-instagram').value.trim(),
+      bankName: document.getElementById('setting-bankName').value.trim(),
+      bankAccount: document.getElementById('setting-bankAccount').value.trim(),
+      bankHolder: document.getElementById('setting-bankHolder').value.trim(),
+      googleDriveApiKey: apiKeyEl ? apiKeyEl.value.trim() : ''
+    };
+
+    try {
+      const res = await API.updateSettings(payload);
+      this.settings = res.settings;
+      this.toast('Pengaturan studio berhasil disimpan!', 'success');
+    } catch (err) {
+      this.toast('Gagal menyimpan pengaturan: ' + err.message, 'error');
+    }
   },
 
   // --- INVOICE GENERATOR ---

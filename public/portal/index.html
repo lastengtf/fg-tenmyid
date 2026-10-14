@@ -73,17 +73,21 @@
         </div>
       </section>
 
-      <!-- Seleksi Foto Pilihan (Interactive Chip Selector & Quota) -->
-      <section class="card">
-        <h2 class="card-title">🖼️ Seleksi Foto Pilihan Klien (Untuk Diedit)</h2>
-        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
-          Pilih nomor-nomor foto yang ingin diedit dari album review fotografer. Sistem membatasi jumlah pilihan sesuai kuota paket Anda.
-        </p>
+      <!-- Seleksi Foto Pilihan (Visual Gallery & Per-Photo Notes) -->
+      <section class="card" id="selection-section">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 6px;">
+          <div>
+            <h2 class="card-title" style="margin-bottom: 4px;">🖼️ Galeri Seleksi Foto Pilihan (Untuk Diedit)</h2>
+            <p style="font-size: 13px; color: var(--text-muted);">
+              Pilih foto langsung dari galeri di bawah ini. Anda dapat memperbesar foto dan menambahkan catatan khusus untuk tiap foto yang dipilih.
+            </p>
+          </div>
+        </div>
 
         <!-- Quota Tracker -->
-        <div class="quota-box">
+        <div class="quota-box" style="margin-top: 14px;">
           <div class="quota-header">
-            <span style="font-weight: 600; color: #fff;">Batas Kuota Pemilihan:</span>
+            <span style="font-weight: 600; color: #fff;">Batas Kuota Pemilihan Paket:</span>
             <span id="quota-text">0 / 20 Foto</span>
           </div>
           <div class="quota-progress-bg">
@@ -91,26 +95,71 @@
           </div>
         </div>
 
-        <!-- Input Tag / Chip -->
-        <div class="input-chip-row">
-          <input type="text" id="chip-input" class="form-control" placeholder="Ketik nomor foto (misal: 023 atau IMG_023)...">
-          <button type="button" id="btn-add-chip" class="btn btn-primary" style="white-space: nowrap;">
-            + Tambah
+        <!-- Gallery Tabs & Toolbar -->
+        <div class="photo-tabs">
+          <button type="button" class="photo-tab-btn active" data-filter="all">
+            Semua Foto <span id="tab-count-all" class="photo-tab-badge">0</span>
           </button>
-          <button type="button" id="btn-paste-chips" class="btn btn-secondary" style="white-space: nowrap;" title="Tempelkan banyak nomor sekaligus">
-            📋 Tempel
+          <button type="button" class="photo-tab-btn" data-filter="selected">
+            ✓ Foto Terpilih <span id="tab-count-selected" class="photo-tab-badge">0</span>
+          </button>
+          <button type="button" class="photo-tab-btn" data-filter="unselected">
+            Belum Dipilih <span id="tab-count-unselected" class="photo-tab-badge">0</span>
           </button>
         </div>
 
-        <!-- Chips List -->
-        <div id="chips-container" class="chips-container">
-          <span class="chip-empty-placeholder">Belum ada foto yang dipilih.</span>
+        <div class="photo-toolbar">
+          <div class="photo-search-wrap">
+            <span class="photo-search-icon">🔍</span>
+            <input type="text" id="photo-search-input" class="form-control" placeholder="Cari nomor atau nama file foto...">
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="btn-toggle-manual-input" class="btn btn-secondary btn-sm" title="Mode input teks / nomor manual">
+              ✍️ Mode Nomor Manual
+            </button>
+          </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 6px;">
-          <div id="save-status-msg" style="font-size: 12px; font-weight: 600; color: var(--text-dim);"></div>
-          <button type="button" id="btn-save-selection" class="btn btn-success" style="padding: 10px 18px;">
-            💾 Kunci & Kirim Pilihan ke Fotografer
+        <!-- Visual Photos Grid -->
+        <div id="photos-loading" style="text-align: center; padding: 40px 16px; color: var(--text-dim); display: none;">
+          <div style="font-size: 28px; margin-bottom: 8px;">🔄</div>
+          <div>Memuat foto dari Google Drive...</div>
+        </div>
+
+        <div id="photos-empty-state" style="display: none; text-align: center; padding: 36px 16px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); border-radius: 10px; margin-bottom: 16px;">
+          <div style="font-size: 32px; margin-bottom: 10px;">📸</div>
+          <div style="font-weight: 700; color: #fff; margin-bottom: 4px;">Galeri Foto Sedang Dipersiapkan</div>
+          <div id="photos-empty-desc" style="font-size: 13px; color: var(--text-muted); max-width: 480px; margin: 0 auto;">
+            Fotografer belum mensinkronkan berkas foto atau sedang mengunggah foto ke Google Drive.
+          </div>
+        </div>
+
+        <div id="photos-visual-grid" class="photos-visual-grid">
+          <!-- Rendered dynamically by JS -->
+        </div>
+
+        <!-- Manual Chip Input (Collapsible Fallback) -->
+        <div id="manual-chip-box" style="display: none; background: rgba(0,0,0,0.2); padding: 14px; border: 1px dashed var(--border); border-radius: 8px; margin-bottom: 16px;">
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-dim); margin-bottom: 8px;">Input Nomor Foto Manual (Alternatif):</div>
+          <div class="input-chip-row">
+            <input type="text" id="chip-input" class="form-control" placeholder="Ketik nomor foto (misal: 023 atau IMG_023)...">
+            <button type="button" id="btn-add-chip" class="btn btn-primary" style="white-space: nowrap;">
+              + Tambah
+            </button>
+            <button type="button" id="btn-paste-chips" class="btn btn-secondary" style="white-space: nowrap;" title="Tempelkan banyak nomor sekaligus">
+              📋 Tempel
+            </button>
+          </div>
+          <div id="chips-container" class="chips-container">
+            <span class="chip-empty-placeholder">Belum ada foto yang dipilih.</span>
+          </div>
+        </div>
+
+        <!-- Action / Save Section -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
+          <div id="save-status-msg" style="font-size: 13px; font-weight: 600; color: var(--text-dim);"></div>
+          <button type="button" id="btn-save-selection" class="btn btn-success" style="padding: 10px 20px; font-size: 14px;">
+            💾 Simpan Pilihan & Catatan Foto
           </button>
         </div>
       </section>
@@ -145,10 +194,93 @@
         </a>
       </div>
 
+      <!-- Sticky Floating Bottom Bar for Quick Action -->
+      <div id="portal-sticky-bar" class="portal-sticky-bar" style="display: none;">
+        <div>
+          <span style="font-weight: 700; color: #fff;" id="sticky-quota-text">0 / 20 Foto Terpilih</span>
+          <span id="sticky-unsaved-badge" style="display: none; font-size: 11px; background: #e3b341; color: #000; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 8px;">Ada Perubahan</span>
+        </div>
+        <button type="button" id="btn-sticky-save" class="btn btn-success btn-sm" style="padding: 8px 16px;">
+          💾 Simpan Pilihan Foto
+        </button>
+      </div>
+
       <footer class="portal-footer">
         Portal Klien &bull; fg.ten.my.id
       </footer>
     </main>
+  </div>
+
+  <!-- Fullscreen Lightbox Modal -->
+  <div id="lightbox-modal" class="lightbox-modal">
+    <div class="lightbox-header">
+      <div id="lightbox-counter" style="font-weight: 600;">Foto 1 / 10</div>
+      <button type="button" id="lightbox-close" class="lightbox-close-btn" title="Tutup (Esc)">&times;</button>
+    </div>
+
+    <div class="lightbox-stage">
+      <button type="button" id="lightbox-prev" class="lightbox-nav-btn lightbox-prev-btn" title="Sebelumnya (Panah Kiri)">&#10094;</button>
+      <img id="lightbox-image" class="lightbox-img" src="" alt="Preview Foto">
+      <button type="button" id="lightbox-next" class="lightbox-nav-btn lightbox-next-btn" title="Selanjutnya (Panah Kanan)">&#10095;</button>
+    </div>
+
+    <div class="lightbox-footer">
+      <div class="lightbox-footer-row">
+        <div>
+          <div id="lightbox-filename" style="font-weight: 700; color: #fff; font-size: 14px;">-</div>
+          <div id="lightbox-note-display" style="font-size: 12px; color: #fbbf24; margin-top: 2px;"></div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="lightbox-note-btn" class="btn btn-secondary btn-sm">
+            📝 Beri Catatan
+          </button>
+          <button type="button" id="lightbox-select-btn" class="btn btn-primary btn-sm">
+            ✓ Pilih Foto Ini
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Per-Photo Note Modal -->
+  <div id="note-modal" class="note-modal">
+    <div class="note-modal-card">
+      <div class="note-modal-header">
+        <div class="note-modal-title">
+          <span>📝</span>
+          <span>Catatan Khusus Foto</span>
+        </div>
+        <button type="button" id="note-modal-close" class="lightbox-close-btn" style="width: 32px; height: 32px; font-size: 16px;">&times;</button>
+      </div>
+      <div class="note-modal-body">
+        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 14px;">
+          <img id="note-photo-thumb" src="" alt="" style="width: 56px; height: 56px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
+          <div>
+            <div id="note-photo-name" style="font-weight: 700; color: #fff; font-size: 13px;">IMG_0001.JPG</div>
+            <div style="font-size: 11px; color: var(--text-dim);">Berikan instruksi edit foto kepada fotografer</div>
+          </div>
+        </div>
+
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">
+          Instruksi Edit / Keterangan:
+        </label>
+        <textarea id="note-modal-textarea" class="form-control" rows="3" placeholder="Contoh: Tolong hilangkan jerawat di pipi kiri, crop vertikal 4:5, buat suasana warna lebih hangat..."></textarea>
+
+        <div style="font-size: 11px; color: var(--text-dim); margin-top: 10px; margin-bottom: 4px;">Saran Catatan Cepat (Klik untuk menambahkan):</div>
+        <div class="quick-tags-container">
+          <button type="button" class="quick-tag-btn" data-tag="Retouch Kulit & Jerawat">✨ Retouch Kulit</button>
+          <button type="button" class="quick-tag-btn" data-tag="Crop 4:5 (Instagram)">📐 Crop 4:5</button>
+          <button type="button" class="quick-tag-btn" data-tag="Hitam Putih (B&W)">🎞️ Hitam Putih</button>
+          <button type="button" class="quick-tag-btn" data-tag="Hapus Objek Mengganggu">🧹 Bersihkan Objek</button>
+          <button type="button" class="quick-tag-btn" data-tag="Cerahkan Wajah">☀️ Cerahkan Wajah</button>
+          <button type="button" class="quick-tag-btn" data-tag="Tone Warna Hangat (Warm)">🔥 Warm Tone</button>
+        </div>
+      </div>
+      <div class="note-modal-footer">
+        <button type="button" id="note-modal-cancel" class="btn btn-secondary btn-sm">Batal</button>
+        <button type="button" id="note-modal-save" class="btn btn-primary btn-sm">💾 Simpan Catatan</button>
+      </div>
+    </div>
   </div>
 
   <script src="/portal/portal.js"></script>

@@ -1,10 +1,17 @@
-// Dedicated Client Portal Controller
+// Dedicated Client Portal Controller - Visual Photo Selector with Google Drive Preview & Per-Photo Notes
 const PortalApp = {
   projectId: null,
   project: null,
   studio: null,
-  selectedPhotos: [], // Array of string photo numbers/tags
+  selectedPhotos: [], // Array of string photo identifiers (names or IDs)
+  photoNotes: {}, // Object: { [photoIdentifier]: "custom note" }
+  drivePhotos: [], // Array of { id, name, thumbnailUrl, previewUrl }
   selectionQuota: 20,
+  activeFilter: 'all', // 'all' | 'selected' | 'unselected'
+  searchQuery: '',
+  lightboxIndex: null,
+  currentNotePhoto: null,
+  hasUnsavedChanges: false,
 
   init() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -20,28 +27,132 @@ const PortalApp = {
   },
 
   bindEvents() {
-    const addBtn = document.getElementById('btn-add-chip');
-    const input = document.getElementById('chip-input');
-    const pasteBtn = document.getElementById('btn-paste-chips');
+    // Save Selection Buttons (main & sticky)
     const saveBtn = document.getElementById('btn-save-selection');
+    const stickySaveBtn = document.getElementById('btn-sticky-save');
+    if (saveBtn) saveBtn.addEventListener('click', () => this.savePhotoSelection());
+    if (stickySaveBtn) stickySaveBtn.addEventListener('click', () => this.savePhotoSelection());
 
-    if (addBtn && input) {
-      addBtn.addEventListener('click', () => this.addCurrentInput());
-      input.addEventListener('keydown', (e) => {
+    // Filter Tabs
+    document.querySelectorAll('.photo-tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.photo-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.activeFilter = btn.dataset.filter || 'all';
+        this.renderGallery();
+      });
+    });
+
+    // Search Input
+    const searchInput = document.getElementById('photo-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.searchQuery = e.target.value.toLowerCase().trim();
+        this.renderGallery();
+      });
+    }
+
+    // Toggle Manual Input
+    const toggleManualBtn = document.getElementById('btn-toggle-manual-input');
+    const manualBox = document.getElementById('manual-chip-box');
+    if (toggleManualBtn && manualBox) {
+      toggleManualBtn.addEventListener('click', () => {
+        const isHidden = manualBox.style.display === 'none';
+        manualBox.style.display = isHidden ? 'block' : 'none';
+        toggleManualBtn.textContent = isHidden ? '🖼️ Sembunyikan Input Manual' : '✍️ Mode Nomor Manual';
+      });
+    }
+
+    // Manual Chip Events
+    const addChipBtn = document.getElementById('btn-add-chip');
+    const chipInput = document.getElementById('chip-input');
+    const pasteChipBtn = document.getElementById('btn-paste-chips');
+
+    if (addChipBtn && chipInput) {
+      addChipBtn.addEventListener('click', () => this.addCurrentManualInput());
+      chipInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ',') {
           e.preventDefault();
-          this.addCurrentInput();
+          this.addCurrentManualInput();
         }
       });
     }
 
-    if (pasteBtn) {
-      pasteBtn.addEventListener('click', () => this.promptPastePhotos());
+    if (pasteChipBtn) {
+      pasteChipBtn.addEventListener('click', () => this.promptPastePhotos());
     }
 
-    if (saveBtn) {
-      saveBtn.addEventListener('click', () => this.savePhotoSelection());
+    // Lightbox Controls
+    const lbClose = document.getElementById('lightbox-close');
+    const lbPrev = document.getElementById('lightbox-prev');
+    const lbNext = document.getElementById('lightbox-next');
+    const lbSelect = document.getElementById('lightbox-select-btn');
+    const lbNoteBtn = document.getElementById('lightbox-note-btn');
+
+    if (lbClose) lbClose.addEventListener('click', () => this.closeLightbox());
+    if (lbPrev) lbPrev.addEventListener('click', () => this.navigateLightbox(-1));
+    if (lbNext) lbNext.addEventListener('click', () => this.navigateLightbox(1));
+    if (lbSelect) {
+      lbSelect.addEventListener('click', () => {
+        const photo = this.getVisiblePhotos()[this.lightboxIndex];
+        if (photo) {
+          this.togglePhotoSelection(photo);
+          this.updateLightboxState();
+        }
+      });
     }
+    if (lbNoteBtn) {
+      lbNoteBtn.addEventListener('click', () => {
+        const photo = this.getVisiblePhotos()[this.lightboxIndex];
+        if (photo) {
+          this.openNoteModal(photo);
+        }
+      });
+    }
+
+    // Lightbox Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+      const lb = document.getElementById('lightbox-modal');
+      if (lb && lb.style.display === 'flex') {
+        if (e.key === 'Escape') this.closeLightbox();
+        else if (e.key === 'ArrowLeft') this.navigateLightbox(-1);
+        else if (e.key === 'ArrowRight') this.navigateLightbox(1);
+      }
+    });
+
+    // Note Modal Controls
+    const noteClose = document.getElementById('note-modal-close');
+    const noteCancel = document.getElementById('note-modal-cancel');
+    const noteSave = document.getElementById('note-modal-save');
+
+    if (noteClose) noteClose.addEventListener('click', () => this.closeNoteModal());
+    if (noteCancel) noteCancel.addEventListener('click', () => this.closeNoteModal());
+    if (noteSave) noteSave.addEventListener('click', () => this.saveNoteModal());
+
+    // Quick Tag Chips in Note Modal
+    document.querySelectorAll('.quick-tag-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tag = btn.dataset.tag;
+        const textarea = document.getElementById('note-modal-textarea');
+        if (textarea && tag) {
+          const current = textarea.value.trim();
+          if (current) {
+            textarea.value = current + ', ' + tag;
+          } else {
+            textarea.value = tag;
+          }
+          textarea.focus();
+        }
+      });
+    });
+
+    // Warn before navigating away if unsaved
+    window.addEventListener('beforeunload', (e) => {
+      if (this.hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'Anda memiliki pilihan foto yang belum disimpan.';
+      }
+    });
   },
 
   async loadProject() {
@@ -59,6 +170,7 @@ const PortalApp = {
       this.project = data.project;
       this.studio = data.studio || {};
       this.selectionQuota = Number(this.project.selectionQuota) || 20;
+      this.photoNotes = (this.project.photoNotes && typeof this.project.photoNotes === 'object') ? this.project.photoNotes : {};
 
       // Parse existing selected photos
       if (this.project.selectedPhotos) {
@@ -66,23 +178,75 @@ const PortalApp = {
           .split(/[\n,;]+/)
           .map(s => s.trim())
           .filter(Boolean);
-        // Deduplicate
         this.selectedPhotos = [...new Set(this.selectedPhotos)];
       } else {
         this.selectedPhotos = [];
       }
 
+      // Initial Drive Photos (if cached)
+      if (Array.isArray(this.project.drivePhotos) && this.project.drivePhotos.length > 0) {
+        this.drivePhotos = this.project.drivePhotos;
+      }
+
       if (loader) loader.style.display = 'none';
       if (content) content.style.display = 'block';
 
-      this.renderProject();
+      this.renderProjectHeader();
+      this.renderQuota();
+      this.renderChips();
+
+      // Fetch fresh photos from Drive endpoint if needed
+      await this.fetchDrivePhotos();
     } catch (err) {
       if (loader) loader.style.display = 'none';
       this.renderError(err.message);
     }
   },
 
-  renderProject() {
+  async fetchDrivePhotos() {
+    const loadingEl = document.getElementById('photos-loading');
+    const emptyEl = document.getElementById('photos-empty-state');
+    const emptyDesc = document.getElementById('photos-empty-desc');
+
+    if (this.drivePhotos.length === 0) {
+      if (loadingEl) loadingEl.style.display = 'block';
+      if (emptyEl) emptyEl.style.display = 'none';
+    }
+
+    try {
+      const res = await fetch(`/api/portal/${this.projectId}/drive-photos`);
+      const data = await res.json();
+
+      if (loadingEl) loadingEl.style.display = 'none';
+
+      if (res.ok && Array.isArray(data.photos) && data.photos.length > 0) {
+        this.drivePhotos = data.photos;
+        if (emptyEl) emptyEl.style.display = 'none';
+        this.renderGallery();
+      } else {
+        if (this.drivePhotos.length === 0) {
+          if (emptyEl) {
+            emptyEl.style.display = 'block';
+            if (emptyDesc && data.message) emptyDesc.textContent = data.message;
+          }
+          // If no drive photos, open manual chip box as fallback
+          const manualBox = document.getElementById('manual-chip-box');
+          if (manualBox) manualBox.style.display = 'block';
+        } else {
+          this.renderGallery();
+        }
+      }
+    } catch (err) {
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (this.drivePhotos.length > 0) {
+        this.renderGallery();
+      } else {
+        if (emptyEl) emptyEl.style.display = 'block';
+      }
+    }
+  },
+
+  renderProjectHeader() {
     const p = this.project;
     const s = this.studio;
 
@@ -143,9 +307,6 @@ const PortalApp = {
       `;
     }
 
-    // Render Quota & Chips
-    this.renderChips();
-
     // Payment details
     const total = Number(p.totalPrice) || 0;
     const dp = Number(p.dpAmount) || 0;
@@ -179,13 +340,148 @@ const PortalApp = {
     }
   },
 
-  // --- PHOTO SELECTION CHIPS & QUOTA LOGIC ---
-  renderChips() {
-    const container = document.getElementById('chips-container');
+  // --- GALLERY RENDERING & FILTERING ---
+  getVisiblePhotos() {
+    let list = this.drivePhotos;
+
+    // Filter by tab
+    if (this.activeFilter === 'selected') {
+      list = list.filter(p => this.isPhotoSelected(p));
+    } else if (this.activeFilter === 'unselected') {
+      list = list.filter(p => !this.isPhotoSelected(p));
+    }
+
+    // Filter by search query
+    if (this.searchQuery) {
+      list = list.filter(p => p.name.toLowerCase().includes(this.searchQuery));
+    }
+
+    return list;
+  },
+
+  isPhotoSelected(photo) {
+    if (!photo) return false;
+    // Check match against photo.name or photo.id
+    return this.selectedPhotos.includes(photo.name) || this.selectedPhotos.includes(photo.id);
+  },
+
+  getPhotoKey(photo) {
+    return photo.name || photo.id;
+  },
+
+  renderGallery() {
+    const grid = document.getElementById('photos-visual-grid');
+    if (!grid) return;
+
+    this.updateTabCounters();
+    const visiblePhotos = this.getVisiblePhotos();
+
+    if (visiblePhotos.length === 0) {
+      if (this.drivePhotos.length > 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 40px 16px; color: var(--text-dim);">
+            🔍 Tidak ada foto yang cocok dengan filter atau pencarian Anda.
+          </div>
+        `;
+      } else {
+        grid.innerHTML = '';
+      }
+      return;
+    }
+
+    grid.innerHTML = visiblePhotos.map((photo, index) => {
+      const isSelected = this.isPhotoSelected(photo);
+      const photoKey = this.getPhotoKey(photo);
+      const note = this.photoNotes[photoKey] || '';
+      const thumbUrl = photo.thumbnailUrl || `https://lh3.googleusercontent.com/d/${photo.id}=w600-h600`;
+
+      return `
+        <div class="photo-card ${isSelected ? 'is-selected' : ''}" data-index="${index}" data-key="${this.escapeHtml(photoKey)}">
+          <div class="photo-thumb-wrap" onclick="PortalApp.openLightbox(${index})">
+            <img class="photo-thumb" src="${thumbUrl}" alt="${this.escapeHtml(photo.name)}" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\' viewBox=\\'0 0 200 200\\'><rect fill=\\'%2318202c\\' width=\\'200\\' height=\\'200\\'/><text fill=\\'%236e7681\\' x=\\'50%\\' y=\\'50%\\' text-anchor=\\'middle\\' font-size=\\'14\\'>Foto</text></svg>'">
+            <div class="photo-selected-badge">✓ Terpilih</div>
+            <button type="button" class="photo-zoom-btn" onclick="event.stopPropagation(); PortalApp.openLightbox(${index})" title="Perbesar Layar Penuh">🔍</button>
+          </div>
+
+          <div class="photo-card-body">
+            <div class="photo-info-top">
+              <span class="photo-file-name" title="${this.escapeHtml(photo.name)}">${this.escapeHtml(photo.name)}</span>
+            </div>
+
+            ${note ? `
+              <div class="photo-note-preview" onclick="PortalApp.openNoteModalByKey('${this.escapeHtml(photoKey)}')" title="Klik untuk edit catatan">
+                📝 <strong>Catatan:</strong> ${this.escapeHtml(note)}
+              </div>
+            ` : ''}
+
+            <div class="photo-card-actions">
+              <button type="button" class="btn-select-photo" onclick="PortalApp.togglePhotoSelectionByIndex(${index})">
+                ${isSelected ? '✓ Terpilih' : '+ Pilih Foto'}
+              </button>
+              <button type="button" class="btn-note-photo ${note ? 'has-note' : ''}" onclick="PortalApp.openNoteModalByKey('${this.escapeHtml(photoKey)}')" title="Catatan edit khusus untuk foto ini">
+                📝
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  updateTabCounters() {
+    const allCount = this.drivePhotos.length;
+    let selectedCount = 0;
+    this.drivePhotos.forEach(p => {
+      if (this.isPhotoSelected(p)) selectedCount++;
+    });
+    const unselectedCount = Math.max(0, allCount - selectedCount);
+
+    const elAll = document.getElementById('tab-count-all');
+    const elSelected = document.getElementById('tab-count-selected');
+    const elUnselected = document.getElementById('tab-count-unselected');
+
+    if (elAll) elAll.textContent = allCount;
+    if (elSelected) elSelected.textContent = selectedCount;
+    if (elUnselected) elUnselected.textContent = unselectedCount;
+  },
+
+  // --- SELECTION TOGGLE & QUOTA ENFORCEMENT ---
+  togglePhotoSelectionByIndex(index) {
+    const visiblePhotos = this.getVisiblePhotos();
+    const photo = visiblePhotos[index];
+    if (photo) {
+      this.togglePhotoSelection(photo);
+    }
+  },
+
+  togglePhotoSelection(photo) {
+    const key = this.getPhotoKey(photo);
+    const isSelected = this.isPhotoSelected(photo);
+
+    if (isSelected) {
+      // Remove from selection
+      this.selectedPhotos = this.selectedPhotos.filter(item => item !== key && item !== photo.id && item !== photo.name);
+      this.markUnsaved();
+    } else {
+      // Check quota
+      if (this.selectedPhotos.length >= this.selectionQuota) {
+        alert(`Batas kuota pemilihan paket Anda adalah ${this.selectionQuota} foto.\nSilakan batalkan pilihan salah satu foto terlebih dahulu sebelum memilih foto baru.`);
+        return;
+      }
+      this.selectedPhotos.push(key);
+      this.markUnsaved();
+    }
+
+    this.renderQuota();
+    this.renderGallery();
+    this.renderChips();
+  },
+
+  renderQuota() {
     const quotaText = document.getElementById('quota-text');
     const quotaBar = document.getElementById('quota-progress-bar');
-    const input = document.getElementById('chip-input');
-    const addBtn = document.getElementById('btn-add-chip');
+    const stickyText = document.getElementById('sticky-quota-text');
+    const stickyBar = document.getElementById('portal-sticky-bar');
 
     const count = this.selectedPhotos.length;
     const quota = this.selectionQuota;
@@ -213,11 +509,157 @@ const PortalApp = {
       }
     }
 
-    // Disable input if quota full
+    // Sticky bar
+    if (stickyBar) {
+      stickyBar.style.display = (count > 0 || this.hasUnsavedChanges) ? 'flex' : 'none';
+      if (stickyText) {
+        stickyText.textContent = `${count} / ${quota} Foto Terpilih ${remaining === 0 ? ' (Penuh)' : ''}`;
+      }
+    }
+  },
+
+  // --- LIGHTBOX CONTROLS ---
+  openLightbox(index) {
+    const visiblePhotos = this.getVisiblePhotos();
+    if (index < 0 || index >= visiblePhotos.length) return;
+
+    this.lightboxIndex = index;
+    const modal = document.getElementById('lightbox-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      this.updateLightboxState();
+    }
+  },
+
+  closeLightbox() {
+    const modal = document.getElementById('lightbox-modal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+    this.lightboxIndex = null;
+  },
+
+  navigateLightbox(dir) {
+    const visiblePhotos = this.getVisiblePhotos();
+    if (visiblePhotos.length === 0 || this.lightboxIndex === null) return;
+
+    let newIndex = this.lightboxIndex + dir;
+    if (newIndex < 0) newIndex = visiblePhotos.length - 1;
+    if (newIndex >= visiblePhotos.length) newIndex = 0;
+
+    this.lightboxIndex = newIndex;
+    this.updateLightboxState();
+  },
+
+  updateLightboxState() {
+    const visiblePhotos = this.getVisiblePhotos();
+    if (this.lightboxIndex === null || !visiblePhotos[this.lightboxIndex]) return;
+
+    const photo = visiblePhotos[this.lightboxIndex];
+    const isSelected = this.isPhotoSelected(photo);
+    const key = this.getPhotoKey(photo);
+    const note = this.photoNotes[key] || '';
+
+    const img = document.getElementById('lightbox-image');
+    const counter = document.getElementById('lightbox-counter');
+    const filename = document.getElementById('lightbox-filename');
+    const selectBtn = document.getElementById('lightbox-select-btn');
+    const noteDisplay = document.getElementById('lightbox-note-display');
+
+    const previewUrl = photo.previewUrl || `https://lh3.googleusercontent.com/d/${photo.id}=s1600`;
+    if (img) img.src = previewUrl;
+
+    if (counter) counter.textContent = `Foto ${this.lightboxIndex + 1} dari ${visiblePhotos.length}`;
+    if (filename) filename.textContent = photo.name || 'Foto';
+
+    if (noteDisplay) {
+      noteDisplay.textContent = note ? `📝 Catatan: ${note}` : '';
+    }
+
+    if (selectBtn) {
+      if (isSelected) {
+        selectBtn.className = 'btn btn-secondary btn-sm';
+        selectBtn.textContent = '✕ Batalkan Pilihan';
+      } else {
+        selectBtn.className = 'btn btn-primary btn-sm';
+        selectBtn.textContent = '✓ Pilih Foto Ini';
+      }
+    }
+  },
+
+  // --- PER-PHOTO NOTE MODAL ---
+  openNoteModalByKey(photoKey) {
+    let photo = this.drivePhotos.find(p => this.getPhotoKey(p) === photoKey || p.name === photoKey || p.id === photoKey);
+    if (!photo) {
+      photo = { name: photoKey, id: photoKey, thumbnailUrl: '' };
+    }
+    this.openNoteModal(photo);
+  },
+
+  openNoteModal(photo) {
+    this.currentNotePhoto = photo;
+    const modal = document.getElementById('note-modal');
+    const nameEl = document.getElementById('note-photo-name');
+    const thumbEl = document.getElementById('note-photo-thumb');
+    const textarea = document.getElementById('note-modal-textarea');
+
+    const key = this.getPhotoKey(photo);
+    if (nameEl) nameEl.textContent = photo.name || key;
+    if (thumbEl) {
+      thumbEl.src = photo.thumbnailUrl || (photo.id ? `https://lh3.googleusercontent.com/d/${photo.id}=w600-h600` : '');
+    }
+    if (textarea) {
+      textarea.value = this.photoNotes[key] || '';
+      textarea.focus();
+    }
+    if (modal) modal.style.display = 'flex';
+  },
+
+  closeNoteModal() {
+    const modal = document.getElementById('note-modal');
+    if (modal) modal.style.display = 'none';
+    this.currentNotePhoto = null;
+  },
+
+  saveNoteModal() {
+    if (!this.currentNotePhoto) return;
+    const key = this.getPhotoKey(this.currentNotePhoto);
+    const textarea = document.getElementById('note-modal-textarea');
+    const noteText = textarea ? textarea.value.trim() : '';
+
+    if (noteText) {
+      this.photoNotes[key] = noteText;
+      // If photo not selected yet, suggest auto-selecting it
+      if (!this.isPhotoSelected(this.currentNotePhoto) && this.selectedPhotos.length < this.selectionQuota) {
+        this.selectedPhotos.push(key);
+      }
+    } else {
+      delete this.photoNotes[key];
+    }
+
+    this.markUnsaved();
+    this.closeNoteModal();
+    this.renderQuota();
+    this.renderGallery();
+    this.renderChips();
+    if (this.lightboxIndex !== null) {
+      this.updateLightboxState();
+    }
+  },
+
+  // --- MANUAL CHIPS LOGIC & SYNC ---
+  renderChips() {
+    const container = document.getElementById('chips-container');
+    const input = document.getElementById('chip-input');
+    const addBtn = document.getElementById('btn-add-chip');
+
+    const count = this.selectedPhotos.length;
+    const quota = this.selectionQuota;
+
     if (input && addBtn) {
       if (count >= quota) {
         input.disabled = true;
-        input.placeholder = 'Kuota maksimal telah tercapai. Hapus salah satu jika ingin ganti.';
+        input.placeholder = 'Kuota maksimal telah tercapai.';
         addBtn.disabled = true;
       } else {
         input.disabled = false;
@@ -226,62 +668,68 @@ const PortalApp = {
       }
     }
 
-    // Render Chip List
     if (!container) return;
     if (count === 0) {
-      container.innerHTML = '<span class="chip-empty-placeholder">Belum ada foto yang dipilih. Masukkan nomor foto di atas.</span>';
+      container.innerHTML = '<span class="chip-empty-placeholder">Belum ada foto yang dipilih.</span>';
       return;
     }
 
-    container.innerHTML = this.selectedPhotos.map((photo, index) => `
-      <div class="photo-chip">
-        <span>${this.escapeHtml(photo)}</span>
-        <span class="chip-remove" onclick="PortalApp.removeChip(${index})" title="Hapus foto ini">&times;</span>
-      </div>
-    `).join('');
+    container.innerHTML = this.selectedPhotos.map((photo, index) => {
+      const note = this.photoNotes[photo] || '';
+      return `
+        <div class="photo-chip">
+          <span>${this.escapeHtml(photo)}</span>
+          ${note ? `<span title="${this.escapeHtml(note)}" style="color: #fbbf24; cursor: pointer;" onclick="PortalApp.openNoteModalByKey('${this.escapeHtml(photo)}')">📝</span>` : ''}
+          <span class="chip-remove" onclick="PortalApp.removeChip(${index})" title="Hapus foto ini">&times;</span>
+        </div>
+      `;
+    }).join('');
   },
 
-  addCurrentInput() {
+  addCurrentManualInput() {
     const input = document.getElementById('chip-input');
     if (!input || !input.value.trim()) return;
 
     let val = input.value.trim().replace(/^,+|,+$/g, '');
     if (!val) return;
 
-    // Check if user entered numbers only, optional auto-prefix
     if (/^\d+$/.test(val)) {
       val = 'IMG_' + val.padStart(4, '0');
     }
 
     if (this.selectedPhotos.includes(val)) {
-      alert(`Nomor foto "${val}" sudah ada di dalam daftar.`);
+      alert(`Nomor foto "${val}" sudah ada di dalam daftar pilihan.`);
       input.value = '';
       return;
     }
 
     if (this.selectedPhotos.length >= this.selectionQuota) {
-      alert(`Batas kuota pemilihan paket Anda adalah ${this.selectionQuota} foto. Hapus salah satu foto jika ingin memilih nomor lain.`);
+      alert(`Batas kuota pemilihan paket Anda adalah ${this.selectionQuota} foto.`);
       return;
     }
 
     this.selectedPhotos.push(val);
     input.value = '';
-    this.renderChips();
     this.markUnsaved();
+    this.renderQuota();
+    this.renderGallery();
+    this.renderChips();
   },
 
   removeChip(index) {
     if (index >= 0 && index < this.selectedPhotos.length) {
-      this.selectedPhotos.splice(index, 1);
-      this.renderChips();
+      const removed = this.selectedPhotos.splice(index, 1)[0];
       this.markUnsaved();
+      this.renderQuota();
+      this.renderGallery();
+      this.renderChips();
     }
   },
 
   promptPastePhotos() {
-    const currentCount = this.selectedPhotos.length;
+    const count = this.selectedPhotos.length;
     const quota = this.selectionQuota;
-    const remaining = quota - currentCount;
+    const remaining = quota - count;
 
     if (remaining <= 0) {
       alert(`Kuota pemilihan Anda sudah penuh (${quota} foto).`);
@@ -311,33 +759,48 @@ const PortalApp = {
       }
     }
 
-    this.renderChips();
     this.markUnsaved();
+    this.renderQuota();
+    this.renderGallery();
+    this.renderChips();
     alert(`Berhasil menambahkan ${added} foto.`);
   },
 
   markUnsaved() {
+    this.hasUnsavedChanges = true;
     const statusMsg = document.getElementById('save-status-msg');
+    const unsavedBadge = document.getElementById('sticky-unsaved-badge');
+
     if (statusMsg) {
-      statusMsg.textContent = '⚠️ Ada perubahan belum disimpan. Klik tombol Simpan di bawah.';
+      statusMsg.textContent = '⚠️ Ada pilihan/catatan belum disimpan. Klik tombol Simpan di bawah.';
       statusMsg.style.color = '#e3b341';
     }
+    if (unsavedBadge) unsavedBadge.style.display = 'inline-block';
   },
 
   async savePhotoSelection() {
     const saveBtn = document.getElementById('btn-save-selection');
+    const stickySaveBtn = document.getElementById('btn-sticky-save');
     const statusMsg = document.getElementById('save-status-msg');
+    const unsavedBadge = document.getElementById('sticky-unsaved-badge');
 
     try {
       if (saveBtn) {
         saveBtn.disabled = true;
         saveBtn.textContent = 'Menyimpan...';
       }
+      if (stickySaveBtn) {
+        stickySaveBtn.disabled = true;
+        stickySaveBtn.textContent = 'Menyimpan...';
+      }
 
       const res = await fetch(`/api/portal/${this.projectId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ selectedPhotos: this.selectedPhotos })
+        body: JSON.stringify({
+          selectedPhotos: this.selectedPhotos,
+          photoNotes: this.photoNotes
+        })
       });
       const data = await res.json();
 
@@ -345,22 +808,29 @@ const PortalApp = {
         throw new Error(data.error || 'Gagal menyimpan pilihan foto.');
       }
 
+      this.hasUnsavedChanges = false;
       if (statusMsg) {
-        statusMsg.textContent = '✅ Pilihan foto Anda berhasil disimpan dan dikirim ke fotografer!';
+        statusMsg.textContent = '✅ Pilihan foto dan catatan Anda berhasil disimpan dan dikirim ke fotografer!';
         statusMsg.style.color = '#3fb950';
       }
-      alert('Pilihan foto Anda berhasil dikunci dan dikirim ke tim fotografer!');
+      if (unsavedBadge) unsavedBadge.style.display = 'none';
+
+      alert(`Pilihan ${this.selectedPhotos.length} foto Anda dan catatan khusus berhasil disimpan!\nTim fotografer akan memproses foto sesuai instruksi Anda.`);
     } catch (err) {
       alert(err.message);
     } finally {
       if (saveBtn) {
         saveBtn.disabled = false;
-        saveBtn.textContent = '💾 Kunci & Kirim Pilihan ke Fotografer';
+        saveBtn.textContent = '💾 Simpan Pilihan & Catatan Foto';
+      }
+      if (stickySaveBtn) {
+        stickySaveBtn.disabled = false;
+        stickySaveBtn.textContent = '💾 Simpan Pilihan Foto';
       }
     }
   },
 
-  // Helpers
+  // --- HELPERS ---
   formatIDR(num) {
     return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
   },

@@ -44,6 +44,8 @@ export async function onRequestGet(context) {
       selectionUrl: project.selectionUrl,
       selectionQuota: Number(project.selectionQuota) || 20,
       selectedPhotos: project.selectedPhotos || '',
+      photoNotes: project.photoNotes || {},
+      drivePhotos: project.drivePhotos || [],
       deliverables: project.deliverables || []
     },
     studio: {
@@ -58,7 +60,7 @@ export async function onRequestGet(context) {
   });
 }
 
-// POST /api/portal/:id - Client submits selected photos
+// POST /api/portal/:id - Client submits selected photos & per-photo notes
 export async function onRequestPost(context) {
   const { request, env, params } = context;
   const id = params.id;
@@ -95,6 +97,7 @@ export async function onRequestPost(context) {
   }
 
   project.selectedPhotos = photoList.join(', ');
+  project.photoNotes = (data.photoNotes && typeof data.photoNotes === 'object') ? data.photoNotes : (project.photoNotes || {});
   project.selectedAt = new Date().toISOString();
   if (project.workflowStatus === 'shooting_done') {
     project.workflowStatus = 'selection';
@@ -105,8 +108,9 @@ export async function onRequestPost(context) {
 
   return jsonResponse({
     success: true,
-    message: 'Daftar nomor foto pilihan Anda berhasil disimpan dan dikirim ke fotografer!',
+    message: 'Daftar nomor foto pilihan Anda dan catatan berhasil disimpan!',
     selectedPhotos: project.selectedPhotos,
+    photoNotes: project.photoNotes,
     selectedCount: photoList.length,
     selectionQuota: quota
   });

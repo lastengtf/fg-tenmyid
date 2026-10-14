@@ -184,10 +184,18 @@ const API = {
     return await this.request(`/api/portal/${id}`);
   },
 
-  async submitPortalSelection(id, selectedPhotos) {
+  async submitPortalSelection(id, selectedPhotos, photoNotes = {}) {
     return await this.request(`/api/portal/${id}`, {
       method: 'POST',
-      body: JSON.stringify({ selectedPhotos })
+      body: JSON.stringify({ selectedPhotos, photoNotes })
+    });
+  },
+
+  // Drive Photos Sync
+  async syncDrivePhotos(id, driveUrl = '', apiKey = '') {
+    return await this.request(`/api/portal/${id}/drive-photos`, {
+      method: 'POST',
+      body: JSON.stringify({ driveUrl, apiKey })
     });
   }
 };

@@ -74,6 +74,8 @@ export async function onRequestPut(context) {
       gearChecklist: data.gearChecklist !== undefined ? data.gearChecklist : (existing.gearChecklist || []),
       selectionQuota: data.selectionQuota !== undefined ? (Number(data.selectionQuota) || 20) : (existing.selectionQuota || 20),
       selectedPhotos: data.selectedPhotos !== undefined ? data.selectedPhotos.trim() : (existing.selectedPhotos || ''),
+      photoNotes: data.photoNotes !== undefined ? data.photoNotes : (existing.photoNotes || {}),
+      drivePhotos: data.drivePhotos !== undefined ? data.drivePhotos : (existing.drivePhotos || []),
       notes: data.notes !== undefined ? data.notes.trim() : existing.notes
     });
 

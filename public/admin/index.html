@@ -413,6 +413,17 @@
                 </div>
               </div>
 
+              <h3 style="font-size: 13px; font-weight: 600; margin: 18px 0 10px 0; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 14px;">
+                ☁️ Integrasi Google Drive (Galeri Visual Otomatis)
+              </h3>
+              <div class="form-group">
+                <label class="form-label">Google Drive API Key (Opsional / Gratis)</label>
+                <input type="text" id="setting-googleDriveApiKey" class="form-control" placeholder="AIzaSy...">
+                <span style="font-size: 11px; color: var(--text-dim); display: block; margin-top: 4px;">
+                  Digunakan untuk otomatis membaca semua foto dari link folder Google Drive dan menampilkannya di portal klien tanpa membuka Drive asli. Dapatkan gratis di Google Cloud Console (aktifkan Google Drive API).
+                </span>
+              </div>
+
               <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Simpan Pengaturan</button>
             </form>
           </div>
@@ -578,8 +589,16 @@
 
             <!-- Link Hasil Foto -->
             <div class="form-group">
-              <label class="form-label">Link Galeri / Google Drive Hasil Foto</label>
-              <input type="url" id="proj-drive-url" class="form-control" placeholder="https://drive.google.com/drive/folders/...">
+              <label class="form-label">Link Galeri / Google Drive Berisi Foto</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="url" id="proj-drive-url" class="form-control" placeholder="https://drive.google.com/drive/folders/..." style="flex: 1;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-sync-drive" onclick="App.syncDrivePhotos()" style="white-space: nowrap;">
+                  ⚡ Sinkronkan Foto
+                </button>
+              </div>
+              <div id="sync-drive-status" style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">
+                💡 Klien akan melihat foto visual langsung di portal mereka tanpa membuka Google Drive asli.
+              </div>
             </div>
 
             <div class="form-group">
@@ -658,9 +677,19 @@
 
           <!-- TAB 5: PILIHAN FOTO KLIEN -->
           <div id="proj-tab-selection" class="proj-tab-pane" style="display: none;">
-            <div style="margin-bottom: 12px;">
-              <h4 style="font-size: 13px; font-weight: 600; color: #fff;">Daftar Foto yang Dipilih Klien</h4>
-              <p style="font-size: 11px; color: var(--text-muted);">Nomor foto ini diisi oleh klien melalui tautan portal mereka.</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <h4 style="font-size: 13px; font-weight: 600; color: #fff;">Daftar Foto & Catatan Khusus Pilihan Klien</h4>
+                <p style="font-size: 11px; color: var(--text-muted);">Klien memilih foto langsung dari galeri visual dan menyertakan instruksi edit.</p>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="App.copySelectedPhotos()">
+                  📋 Salin List Lightroom
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="App.openClientPortalFromModal()">
+                  👁️ Buka Portal Klien
+                </button>
+              </div>
             </div>
 
             <div class="form-group" style="margin-bottom: 14px;">
@@ -669,13 +698,15 @@
               <span style="font-size: 11px; color: var(--text-dim);">Klien tidak dapat memilih melebihi batas kuota ini di portal mereka.</span>
             </div>
 
-            <div class="form-group">
-              <textarea id="proj-selected-photos" class="form-control" style="min-height: 100px;" placeholder="Belum ada nomor foto yang dipilih oleh klien."></textarea>
+            <!-- Preview Galeri Foto Terpilih & Catatannya -->
+            <div id="proj-selected-visual-container" style="margin-bottom: 14px; max-height: 280px; overflow-y: auto;">
+              <!-- Rendered via JS -->
             </div>
 
-            <button type="button" class="btn btn-secondary btn-sm" onclick="App.copySelectedPhotos()">
-              📋 Salin Nomor Foto (Untuk Filter Lightroom)
-            </button>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 11px; color: var(--text-dim);">Teks Nomor Foto Terpilih (Koma / Baris Baru):</label>
+              <textarea id="proj-selected-photos" class="form-control" style="min-height: 70px;" placeholder="Belum ada nomor foto yang dipilih oleh klien."></textarea>
+            </div>
           </div>
         </div>
 

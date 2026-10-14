@@ -146,6 +146,8 @@ async function handleApi(pathname, method, request, env) {
         selectionUrl: project.selectionUrl,
         selectionQuota: Number(project.selectionQuota) || 20,
         selectedPhotos: project.selectedPhotos || '',
+        photoNotes: project.photoNotes || {},
+        drivePhotos: project.drivePhotos || [],
         deliverables: project.deliverables || []
       },
       studio: {
@@ -160,7 +162,122 @@ async function handleApi(pathname, method, request, env) {
     });
   }
 
-  // Public Endpoint: Submit photo selection
+  // Public Endpoint: Fetch or Sync Google Drive Photos for a project
+  if (pathname.startsWith('/api/portal/') && pathname.endsWith('/drive-photos')) {
+    const id = pathname.replace('/api/portal/', '').replace('/drive-photos', '');
+    let project = await getProject(env, id);
+    if (!project) {
+      const all = await getAllProjects(env);
+      project = all.find(p => p.portalKey === id || p.id === id);
+    }
+    if (!project) {
+      return jsonResponse({ error: 'Proyek foto tidak ditemukan.' }, 404);
+    }
+
+    const extractFolderId = (url) => {
+      if (!url) return null;
+      const match = url.match(/[-\w]{25,}/);
+      return match ? match[0] : null;
+    };
+
+    if (method === 'GET') {
+      if (Array.isArray(project.drivePhotos) && project.drivePhotos.length > 0) {
+        return jsonResponse({
+          photos: project.drivePhotos,
+          source: 'cached',
+          folderId: extractFolderId(project.selectionUrl || project.driveUrl)
+        });
+      }
+
+      const folderUrl = project.selectionUrl || project.driveUrl;
+      const folderId = extractFolderId(folderUrl);
+      if (!folderId) {
+        return jsonResponse({ photos: [], message: 'Belum ada tautan folder Google Drive yang valid.' });
+      }
+
+      const settings = await getSettings(env);
+      const apiKey = env.GOOGLE_DRIVE_API_KEY || settings.googleDriveApiKey;
+      if (apiKey) {
+        try {
+          const gUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false+and+mimeType+contains+'image/'&key=${apiKey}&fields=files(id,name,mimeType,thumbnailLink)&pageSize=250&orderBy=name`;
+          const gRes = await fetch(gUrl);
+          const gData = await gRes.json();
+          if (gRes.ok && Array.isArray(gData.files)) {
+            const photos = gData.files.map(f => ({
+              id: f.id,
+              name: f.name,
+              thumbnailUrl: `https://lh3.googleusercontent.com/d/${f.id}=w600-h600`,
+              previewUrl: `https://lh3.googleusercontent.com/d/${f.id}=s1600`
+            }));
+            project.drivePhotos = photos;
+            await saveProject(env, project);
+            return jsonResponse({ photos, source: 'google_api', count: photos.length });
+          }
+        } catch (e) {
+          console.warn('Google Drive API error:', e.message);
+        }
+      }
+
+      return jsonResponse({
+        photos: project.drivePhotos || [],
+        folderId,
+        needApiKey: !apiKey,
+        message: apiKey
+          ? 'Tidak dapat memuat berkas gambar dari Google Drive. Pastikan folder dapat diakses siapa saja.'
+          : 'Google Drive API Key belum disetel atau folder belum disinkronkan.'
+      });
+    }
+
+    if (method === 'POST') {
+      const data = await request.json();
+      const folderUrl = data.driveUrl || project.selectionUrl || project.driveUrl;
+      const folderId = extractFolderId(folderUrl);
+      const settings = await getSettings(env);
+      const apiKey = data.apiKey || env.GOOGLE_DRIVE_API_KEY || settings.googleDriveApiKey;
+
+      if (folderId && apiKey) {
+        try {
+          const gUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents+and+trashed=false+and+mimeType+contains+'image/'&key=${apiKey}&fields=files(id,name,mimeType,thumbnailLink)&pageSize=300&orderBy=name`;
+          const gRes = await fetch(gUrl);
+          const gData = await gRes.json();
+          if (!gRes.ok) {
+            return jsonResponse({ error: gData.error ? gData.error.message : 'Google Drive API gagal.' }, 400);
+          }
+          const photos = (gData.files || []).map(f => ({
+            id: f.id,
+            name: f.name,
+            thumbnailUrl: `https://lh3.googleusercontent.com/d/${f.id}=w600-h600`,
+            previewUrl: `https://lh3.googleusercontent.com/d/${f.id}=s1600`
+          }));
+          project.drivePhotos = photos;
+          await saveProject(env, project);
+          return jsonResponse({
+            success: true,
+            message: `Berhasil mensinkronkan ${photos.length} foto dari Google Drive!`,
+            count: photos.length,
+            photos
+          });
+        } catch (err) {
+          return jsonResponse({ error: 'Gagal sinkronisasi Google Drive: ' + err.message }, 500);
+        }
+      }
+
+      if (Array.isArray(data.photos)) {
+        project.drivePhotos = data.photos;
+        await saveProject(env, project);
+        return jsonResponse({
+          success: true,
+          message: `Tersimpan ${data.photos.length} foto ke proyek.`,
+          count: data.photos.length,
+          photos: project.drivePhotos
+        });
+      }
+
+      return jsonResponse({ error: 'Masukkan URL Google Drive folder yang valid atau sertakan Google Drive API Key.' }, 400);
+    }
+  }
+
+  // Public Endpoint: Submit photo selection & notes
   if (pathname.startsWith('/api/portal/') && method === 'POST') {
     const id = pathname.replace('/api/portal/', '');
     let project = await getProject(env, id);
@@ -189,6 +306,7 @@ async function handleApi(pathname, method, request, env) {
     }
 
     project.selectedPhotos = photoList.join(', ');
+    project.photoNotes = (data.photoNotes && typeof data.photoNotes === 'object') ? data.photoNotes : (project.photoNotes || {});
     project.selectedAt = new Date().toISOString();
     if (project.workflowStatus === 'shooting_done') {
       project.workflowStatus = 'selection';
@@ -196,8 +314,9 @@ async function handleApi(pathname, method, request, env) {
     await saveProject(env, project);
     return jsonResponse({
       success: true,
-      message: 'Daftar nomor foto pilihan Anda berhasil disimpan dan dikirim ke fotografer!',
+      message: 'Daftar nomor foto pilihan Anda dan catatan berhasil disimpan!',
       selectedPhotos: project.selectedPhotos,
+      photoNotes: project.photoNotes,
       selectedCount: photoList.length,
       selectionQuota: quota
     });
@@ -610,6 +729,8 @@ async function handleApi(pathname, method, request, env) {
         gearChecklist: Array.isArray(data.gearChecklist) ? data.gearChecklist : [],
         selectionQuota: Number(data.selectionQuota) || 20,
         selectedPhotos: (data.selectedPhotos || '').trim(),
+        photoNotes: data.photoNotes || {},
+        drivePhotos: Array.isArray(data.drivePhotos) ? data.drivePhotos : [],
         notes: (data.notes || '').trim()
       });
 
@@ -670,6 +791,8 @@ async function handleApi(pathname, method, request, env) {
         gearChecklist: data.gearChecklist !== undefined ? data.gearChecklist : (existing.gearChecklist || []),
         selectionQuota: data.selectionQuota !== undefined ? (Number(data.selectionQuota) || 20) : (existing.selectionQuota || 20),
         selectedPhotos: data.selectedPhotos !== undefined ? data.selectedPhotos.trim() : (existing.selectedPhotos || ''),
+        photoNotes: data.photoNotes !== undefined ? data.photoNotes : (existing.photoNotes || {}),
+        drivePhotos: data.drivePhotos !== undefined ? data.drivePhotos : (existing.drivePhotos || []),
         notes: data.notes !== undefined ? data.notes.trim() : existing.notes
       });
       return jsonResponse({ success: true, project: updated });
@@ -744,6 +867,7 @@ async function handleApi(pathname, method, request, env) {
         bankName: data.bankName !== undefined ? data.bankName.trim() : existing.bankName,
         bankAccount: data.bankAccount !== undefined ? data.bankAccount.trim() : existing.bankAccount,
         bankHolder: data.bankHolder !== undefined ? data.bankHolder.trim() : existing.bankHolder,
+        googleDriveApiKey: data.googleDriveApiKey !== undefined ? data.googleDriveApiKey.trim() : existing.googleDriveApiKey,
         address: data.address !== undefined ? data.address.trim() : existing.address
       });
       return jsonResponse({ success: true, settings: updated });

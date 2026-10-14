@@ -22,6 +22,7 @@ export async function onRequestPut(context) {
       bankName: data.bankName !== undefined ? data.bankName.trim() : existing.bankName,
       bankAccount: data.bankAccount !== undefined ? data.bankAccount.trim() : existing.bankAccount,
       bankHolder: data.bankHolder !== undefined ? data.bankHolder.trim() : existing.bankHolder,
+      googleDriveApiKey: data.googleDriveApiKey !== undefined ? data.googleDriveApiKey.trim() : existing.googleDriveApiKey,
       address: data.address !== undefined ? data.address.trim() : existing.address
     });
     return jsonResponse({ success: true, settings: updated });
