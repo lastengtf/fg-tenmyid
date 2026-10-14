@@ -902,3 +902,89 @@ body {
     padding: 12px 14px;
   }
 }
+
+/* Watermark & Anti-Theft Protection for Unedited Previews */
+.photo-watermark-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0.28;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  text-transform: uppercase;
+  transform: rotate(-18deg);
+  z-index: 1;
+}
+
+.photo-thumb, .lightbox-img {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+
+.lightbox-stage {
+  position: relative;
+}
+
+.lightbox-watermark-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-18deg);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0.24;
+  font-weight: 900;
+  font-size: clamp(20px, 4vw, 36px);
+  letter-spacing: 5px;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
+  text-transform: uppercase;
+  z-index: 5;
+  white-space: nowrap;
+}
+
+/* Print Invoice Styles for Client Portal */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #portal-invoice-content, #portal-invoice-content * {
+    visibility: visible;
+  }
+  #portal-invoice-modal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    background: #fff !important;
+    display: block !important;
+    padding: 0 !important;
+  }
+  #portal-invoice-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    box-shadow: none !important;
+    border: none !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+

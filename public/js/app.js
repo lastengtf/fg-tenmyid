@@ -1034,13 +1034,104 @@ const App = {
   },
 
   copySelectedPhotos() {
-    const txt = document.getElementById('proj-selected-photos')?.value || '';
+    const txt = document.getElementById('proj-selected-photos')?.value || this.currentProject?.selectedPhotos || '';
     if (!txt.trim()) {
-      this.toast('Belum ada nomor foto untuk disalin', 'info');
+      this.toast('Belum ada foto terpilih untuk disalin', 'info');
       return;
     }
     navigator.clipboard.writeText(txt);
-    this.toast('Nomor foto disalin ke clipboard! Siap di-paste ke Lightroom/Photo Mechanic.', 'success');
+    this.toast('Daftar nomor foto disalin ke clipboard!', 'success');
+  },
+
+  copySelectedLightroomFilter() {
+    const raw = document.getElementById('proj-selected-photos')?.value || this.currentProject?.selectedPhotos || '';
+    const list = raw.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    if (list.length === 0) {
+      this.toast('Belum ada foto terpilih untuk disalin.', 'info');
+      return;
+    }
+
+    // Adobe Lightroom Classic text search accepts comma-separated filenames
+    const lrFilterText = list.join(', ');
+    navigator.clipboard.writeText(lrFilterText);
+    this.toast(`Format Filter Lightroom (${list.length} foto) disalin! Tempel di Filter Library Lightroom > Text > Filename > Contains`, 'success');
+  },
+
+  downloadSelectedPhotosTxt() {
+    const p = this.currentProject || {};
+    const raw = document.getElementById('proj-selected-photos')?.value || p.selectedPhotos || '';
+    const list = raw.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    if (list.length === 0) {
+      this.toast('Belum ada foto terpilih untuk diunduh.', 'info');
+      return;
+    }
+
+    const notes = p.photoNotes || {};
+    const lines = [
+      `============================================================`,
+      `DAFTAR FOTO PILIHAN KLIEN - ${p.clientName || 'KLIEN'}`,
+      `Sesi Foto   : ${p.title || '-'}`,
+      `Tanggal     : ${p.date || '-'}`,
+      `Total Foto  : ${list.length} foto`,
+      `============================================================`,
+      ``,
+      `[DAFTAR NAMA FILE]:`,
+      ...list,
+      ``,
+      `============================================================`,
+      `[CATATAN KHUSUS EDITING DARI KLIEN]:`,
+      `============================================================`
+    ];
+
+    let hasNotes = false;
+    list.forEach(name => {
+      const note = notes[name] || '';
+      if (note) {
+        hasNotes = true;
+        lines.push(`• ${name}: ${note}`);
+      }
+    });
+
+    if (!hasNotes) {
+      lines.push(`(Tidak ada instruksi khusus dari klien)`);
+    }
+
+    lines.push(``, `Dicatat melalui Platform fg.ten.my.id`);
+
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const cleanName = (p.clientName || 'klien').toLowerCase().replace(/\s+/g, '-');
+    a.download = `pilihan-foto-${cleanName}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.toast('Berkas teks (.txt) berhasil diunduh!', 'success');
+  },
+
+  copyClientNotesText() {
+    const p = this.currentProject || {};
+    const raw = document.getElementById('proj-selected-photos')?.value || p.selectedPhotos || '';
+    const list = raw.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    const notes = p.photoNotes || {};
+    const noteLines = [];
+
+    list.forEach(name => {
+      const note = notes[name] || '';
+      if (note) {
+        noteLines.push(`• ${name}: ${note}`);
+      }
+    });
+
+    if (noteLines.length === 0) {
+      this.toast('Tidak ada catatan khusus dari klien.', 'info');
+      return;
+    }
+
+    navigator.clipboard.writeText(noteLines.join('\n'));
+    this.toast(`Catatan khusus ${noteLines.length} foto berhasil disalin!`, 'success');
   },
 
   renderSelectedPhotosVisual() {
@@ -1062,7 +1153,34 @@ const App = {
       return;
     }
 
+    // Collect all items with notes
+    const notedItems = [];
+    list.forEach(photoName => {
+      const match = drivePhotos.find(dp => dp.name === photoName || dp.id === photoName);
+      const note = notes[photoName] || (match ? notes[match.id] : '') || '';
+      if (note) {
+        notedItems.push({ name: photoName, note });
+      }
+    });
+
     container.innerHTML = `
+      ${notedItems.length > 0 ? `
+        <div style="background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 700; color: #fbbf24; font-size: 12px;">📝 Catatan Khusus Editing Klien (${notedItems.length} foto):</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.copyClientNotesText()" style="font-size: 11px; padding: 2px 8px;">📋 Salin Semua Catatan</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; max-height: 120px; overflow-y: auto;">
+            ${notedItems.map(item => `
+              <div style="padding: 3px 0; border-bottom: 1px dashed rgba(255,255,255,0.06);">
+                <strong style="color: #60a5fa;">${this.escapeHtml(item.name)}:</strong> 
+                <span style="color: #e5e7eb;">${this.escapeHtml(item.note)}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 6px;">
         ${list.map((photoName, idx) => {
           const match = drivePhotos.find(dp => dp.name === photoName || dp.id === photoName);
@@ -1351,6 +1469,11 @@ function doGet(e) {
       text = `Halo Kak ${p.clientName}! 🙏\n\nBerikut rincian tagihan sesi foto *${p.title}*:\n• Total Biaya: ${total}\n• DP Masuk: ${this.formatIDR(p.dpAmount || 0)}\n• Sisa Pembayaran: *${balance}*\n\nPembayaran dapat ditransfer ke:\n💳 ${bank}\n\nKonfirmasi bukti transfer ke nomor ini jika sudah ya Kak. Terima kasih banyak!`;
     } else if (type === 'portal') {
       text = `Halo Kak ${p.clientName}! ✨\n\nBerikut tautan portal sesi foto Anda untuk memantau jadwal, lokasi, status progres pengerjaan, dan unduhan foto:\n👉 ${portalUrl}\n\nTautan ini bisa dibuka langsung tanpa perlu login. Terima kasih!`;
+    } else if (type === 'selection_request') {
+      text = `Halo Kak ${p.clientName}! 📸\n\nFoto-foto hasil sesi pemotretan *${p.title}* sudah siap dipilih!\nSilakan buka tautan portal klien Anda untuk memilih maksimal *${p.selectionQuota || 20} foto* terbaik dan beri catatan edit khusus bila ada:\n👉 ${portalUrl}\n\nTautan ini bisa dibuka langsung tanpa login. Setelah selesai memilih, klik Simpan ya Kak!\n\nSalam,\n*${s.studioName || 'TEN Photography'}*`;
+    } else if (type === 'editing_status') {
+      const photoCount = (p.selectedPhotos || '').split(/[\n,;]+/).filter(Boolean).length;
+      text = `Halo Kak ${p.clientName}! 🎨\n\nFoto-foto pilihan Anda (${photoCount > 0 ? `${photoCount} foto` : 'pilihan foto'}) sudah kami terima dengan baik dan saat ini sedang masuk ke tahap retouching & color grading.\n\nKami akan segera mengabari kembali setelah seluruh foto siap diunduh ya Kak. Terima kasih banyak atas kesabarannya! 🙏`;
     } else if (type === 'drive') {
       text = `Halo Kak ${p.clientName}! 🎉\n\nKabar gembira, foto-foto sesi *${p.title}* sudah selesai dan siap diunduh!\n\n📥 Link Galeri / Google Drive:\n${p.driveUrl || portalUrl}\n\nSilakan diunduh dan disimpan berkas fotonya ya Kak. Terima kasih banyak atas kepercayaannya memotret bersama kami!`;
     } else if (type === 'review') {
@@ -1417,32 +1540,73 @@ function doGet(e) {
         return;
       }
 
-      const headers = ['ID', 'Judul Sesi', 'Klien', 'WhatsApp', 'Kategori', 'Tanggal', 'Jam', 'Lokasi', 'Harga Paket', 'DP', 'Status Bayar', 'Status Alur Kerja', 'Drive Link'];
-      const rows = projects.map(p => [
-        p.id,
-        `"${(p.title || '').replace(/"/g, '""')}"`,
-        `"${(p.clientName || '').replace(/"/g, '""')}"`,
-        `"${p.clientPhone || ''}"`,
-        `"${p.category || ''}"`,
-        p.date || '',
-        p.time || '',
-        `"${(p.location || '').replace(/"/g, '""')}"`,
-        p.totalPrice || 0,
-        p.dpAmount || 0,
-        p.paymentStatus || '',
-        p.workflowStatus || '',
-        `"${p.driveUrl || ''}"`
-      ]);
+      const headers = [
+        'ID Sesi',
+        'Tanggal',
+        'Waktu',
+        'Judul Sesi',
+        'Kategori',
+        'Nama Klien',
+        'No WhatsApp',
+        'Lokasi',
+        'Harga Paket (Rp)',
+        'Add-ons (Rp)',
+        'Total Tagihan (Rp)',
+        'DP Masuk (Rp)',
+        'Sisa Tagihan (Rp)',
+        'Biaya Operasional (Rp)',
+        'Estimasi Laba Bersih (Rp)',
+        'Status Bayar',
+        'Tahap Alur Kerja',
+        'Jumlah Foto Terpilih',
+        'Tautan Google Drive'
+      ];
+
+      const rows = projects.map(p => {
+        const pkgPrice = Number(p.packagePrice) || 0;
+        const addOns = Number(p.addOnsPrice) || 0;
+        const totalRevenue = Number(p.totalPrice) || (pkgPrice + addOns);
+        const dp = Number(p.dpAmount) || 0;
+        const balance = totalRevenue - dp;
+        let totalExp = 0;
+        if (Array.isArray(p.expenses)) {
+          totalExp = p.expenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        }
+        const netProfit = totalRevenue - totalExp;
+        const selCount = (p.selectedPhotos || '').split(/[\n,;]+/).filter(Boolean).length;
+
+        return [
+          p.id,
+          p.date || '',
+          p.time || '',
+          `"${(p.title || '').replace(/"/g, '""')}"`,
+          `"${p.category || ''}"`,
+          `"${(p.clientName || '').replace(/"/g, '""')}"`,
+          `"${p.clientPhone || ''}"`,
+          `"${(p.location || '').replace(/"/g, '""')}"`,
+          pkgPrice,
+          addOns,
+          totalRevenue,
+          dp,
+          balance,
+          totalExp,
+          netProfit,
+          p.paymentStatus || '',
+          p.workflowStatus || '',
+          selCount,
+          `"${p.driveUrl || ''}"`
+        ];
+      });
 
       const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `rekap-proyek-fg-ten-${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `rekap-keuangan-proyek-fg-ten-${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      this.toast('Berkas CSV berhasil diunduh!', 'success');
+      this.toast('Berkas CSV keuangan proyek berhasil diunduh!', 'success');
     } catch (err) {
       this.toast('Gagal mengekspor data: ' + err.message, 'error');
     }

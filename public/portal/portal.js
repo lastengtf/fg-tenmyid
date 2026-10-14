@@ -320,12 +320,24 @@ const PortalApp = {
 
     // Bank transfer details
     const bankBox = document.getElementById('bank-info-box');
+    const confirmWaBtn = document.getElementById('btn-confirm-payment-wa');
     if (s.bankName && s.bankAccount) {
       bankBox.style.display = 'block';
       document.getElementById('bank-name-account').textContent = `${s.bankName}: ${s.bankAccount}`;
       document.getElementById('bank-holder').textContent = `a.n ${s.bankHolder || s.studioName}`;
     } else {
       bankBox.style.display = 'none';
+    }
+
+    if (confirmWaBtn) {
+      if (s.phone) {
+        let cleanPhone = s.phone.replace(/\D/g, '').replace(/^0/, '62');
+        const payMsg = encodeURIComponent(`Halo ${s.studioName || 'Kak'}! 👋\nSaya *${p.clientName}* ingin konfirmasi pembayaran untuk sesi foto *${p.title}*:\n• Total Tagihan: ${this.formatIDR(total)}\n• Sudah Dibayar/DP: ${this.formatIDR(dp)}\n• Sisa Tagihan: ${balance <= 0 ? 'LUNAS (Rp 0)' : this.formatIDR(balance)}\n\nBukti transfer saya lampirkan berikut ya. Terima kasih!`);
+        confirmWaBtn.href = `https://wa.me/${cleanPhone}?text=${payMsg}`;
+        confirmWaBtn.style.display = 'inline-flex';
+      } else {
+        confirmWaBtn.style.display = 'none';
+      }
     }
 
     // Contact WhatsApp
@@ -338,6 +350,16 @@ const PortalApp = {
     } else {
       waBtn.style.display = 'none';
     }
+  },
+
+  copyBankAccount() {
+    const s = this.studio || {};
+    if (!s.bankAccount) {
+      alert('Nomor rekening belum tersedia.');
+      return;
+    }
+    navigator.clipboard.writeText(s.bankAccount);
+    alert(`Nomor rekening ${s.bankAccount} (${s.bankName || ''}) berhasil disalin!`);
   },
 
   // --- GALLERY RENDERING & FILTERING ---
@@ -389,6 +411,8 @@ const PortalApp = {
       return;
     }
 
+    const watermarkText = (this.studio && this.studio.studioName) ? `PREVIEW • ${this.studio.studioName}` : 'PREVIEW ONLY';
+
     grid.innerHTML = visiblePhotos.map((photo, index) => {
       const isSelected = this.isPhotoSelected(photo);
       const photoKey = this.getPhotoKey(photo);
@@ -398,7 +422,8 @@ const PortalApp = {
       return `
         <div class="photo-card ${isSelected ? 'is-selected' : ''}" data-index="${index}" data-key="${this.escapeHtml(photoKey)}">
           <div class="photo-thumb-wrap" onclick="PortalApp.openLightbox(${index})">
-            <img class="photo-thumb" src="${thumbUrl}" alt="${this.escapeHtml(photo.name)}" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\' viewBox=\\'0 0 200 200\\'><rect fill=\\'%2318202c\\' width=\\'200\\' height=\\'200\\'/><text fill=\\'%236e7681\\' x=\\'50%\\' y=\\'50%\\' text-anchor=\\'middle\\' font-size=\\'14\\'>Foto</text></svg>'">
+            <img class="photo-thumb" src="${thumbUrl}" alt="${this.escapeHtml(photo.name)}" loading="lazy" oncontextmenu="return false;" draggable="false" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\' viewBox=\\'0 0 200 200\\'><rect fill=\\'%2318202c\\' width=\\'200\\' height=\\'200\\'/><text fill=\\'%236e7681\\' x=\\'50%\\' y=\\'50%\\' text-anchor=\\'middle\\' font-size=\\'14\\'>Foto</text></svg>'">
+            <div class="photo-watermark-overlay">${this.escapeHtml(watermarkText)}</div>
             <div class="photo-selected-badge">✓ Terpilih</div>
             <button type="button" class="photo-zoom-btn" onclick="event.stopPropagation(); PortalApp.openLightbox(${index})" title="Perbesar Layar Penuh">🔍</button>
           </div>
@@ -568,6 +593,11 @@ const PortalApp = {
 
     const previewUrl = photo.previewUrl || `https://lh3.googleusercontent.com/d/${photo.id}=s1600`;
     if (img) img.src = previewUrl;
+
+    const watermarkEl = document.getElementById('lightbox-watermark');
+    if (watermarkEl) {
+      watermarkEl.textContent = (this.studio && this.studio.studioName) ? `PREVIEW • ${this.studio.studioName}` : 'PREVIEW ONLY';
+    }
 
     if (counter) counter.textContent = `Foto ${this.lightboxIndex + 1} dari ${visiblePhotos.length}`;
     if (filename) filename.textContent = photo.name || 'Foto';
@@ -815,7 +845,31 @@ const PortalApp = {
       }
       if (unsavedBadge) unsavedBadge.style.display = 'none';
 
-      alert(`Pilihan ${this.selectedPhotos.length} foto Anda dan catatan khusus berhasil disimpan!\nTim fotografer akan memproses foto sesuai instruksi Anda.`);
+      // Show confirmation modal with instant WhatsApp notify button
+      const confirmModal = document.getElementById('modal-saved-confirm');
+      const confirmDesc = document.getElementById('saved-confirm-desc');
+      const notifyWaBtn = document.getElementById('btn-saved-notify-wa');
+
+      if (confirmDesc) {
+        confirmDesc.textContent = `Pilihan ${this.selectedPhotos.length} foto Anda dan instruksi khusus telah tersimpan di sistem fotografer.`;
+      }
+
+      if (notifyWaBtn) {
+        const s = this.studio || {};
+        if (s.phone) {
+          let cleanPhone = s.phone.replace(/\D/g, '').replace(/^0/, '62');
+          const origin = window.location.origin;
+          const msg = encodeURIComponent(`Halo ${s.studioName || 'Kak'}! 👋\nSaya *${this.project.clientName}* sudah selesai memilih *${this.selectedPhotos.length} foto* untuk sesi *${this.project.title}* di portal klien:\n👉 ${origin}/portal?id=${this.projectId}\n\nMohon dicek ya Kak, terima kasih!`);
+          notifyWaBtn.href = `https://wa.me/${cleanPhone}?text=${msg}`;
+          notifyWaBtn.style.display = 'inline-flex';
+        } else {
+          notifyWaBtn.style.display = 'none';
+        }
+      }
+
+      if (confirmModal) {
+        confirmModal.style.display = 'flex';
+      }
     } catch (err) {
       alert(err.message);
     } finally {
@@ -828,6 +882,113 @@ const PortalApp = {
         stickySaveBtn.textContent = '💾 Simpan Pilihan Foto';
       }
     }
+  },
+
+  // --- DIGITAL INVOICE / RECEIPT MODAL ---
+  openInvoiceModal() {
+    const p = this.project;
+    const s = this.studio;
+    const modal = document.getElementById('portal-invoice-modal');
+    const content = document.getElementById('portal-invoice-content');
+    if (!modal || !content || !p) return;
+
+    const total = Number(p.totalPrice) || 0;
+    const dp = Number(p.dpAmount) || 0;
+    const balance = total - dp;
+    const pkgPrice = Number(p.packagePrice) || 0;
+    const addOns = Number(p.addOnsPrice) || 0;
+
+    content.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #222; padding-bottom: 14px; margin-bottom: 16px;">
+        <div>
+          <h2 style="font-size: 20px; font-weight: 800; color: #111; margin: 0;">${this.escapeHtml(s.studioName || 'TEN Photography')}</h2>
+          <div style="font-size: 12px; color: #555; margin-top: 2px;">
+            ${s.phone ? `WA/Telp: ${this.escapeHtml(s.phone)}<br>` : ''}
+            ${s.instagram ? `Instagram: ${this.escapeHtml(s.instagram)}` : ''}
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 16px; font-weight: 800; color: #111; text-transform: uppercase;">KWITANSI PEMBAYARAN</div>
+          <div style="font-size: 12px; color: #555; margin-top: 2px;">No: INV-${p.id.substring(0, 8).toUpperCase()}</div>
+          <div style="font-size: 12px; color: #555;">Tgl: ${this.formatDate(p.date || new Date().toISOString())}</div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; margin-bottom: 18px; font-size: 13px; line-height: 1.5;">
+        <div>
+          <div style="color: #666; font-size: 11px; text-transform: uppercase; font-weight: 700;">Diberikan Kepada (Klien):</div>
+          <div style="font-weight: 700; color: #111; font-size: 15px;">${this.escapeHtml(p.clientName)}</div>
+          <div style="color: #555;">${this.escapeHtml(p.clientPhone || '')}</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="color: #666; font-size: 11px; text-transform: uppercase; font-weight: 700;">Detail Sesi Foto:</div>
+          <div style="font-weight: 600; color: #111;">${this.escapeHtml(p.title)}</div>
+          <div style="color: #555;">${this.escapeHtml(p.location || '-')}</div>
+        </div>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 13px;">
+        <thead>
+          <tr style="background: #f4f4f5; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd;">
+            <th style="text-align: left; padding: 8px 10px; color: #333;">Deskripsi Layanan</th>
+            <th style="text-align: right; padding: 8px 10px; color: #333;">Jumlah</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px;">
+              <strong>Paket Foto: ${this.escapeHtml(p.category)} ${p.packageName ? `(${this.escapeHtml(p.packageName)})` : ''}</strong>
+              <div style="font-size: 11px; color: #666;">Termasuk ${p.selectionQuota || 20} foto pilihan hasil retouch & color grading</div>
+            </td>
+            <td style="padding: 10px; text-align: right; font-weight: 600;">${this.formatIDR(pkgPrice || total)}</td>
+          </tr>
+          ${addOns > 0 ? `
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 10px;">Tambahan Layanan / Add-ons</td>
+              <td style="padding: 10px; text-align: right; font-weight: 600;">${this.formatIDR(addOns)}</td>
+            </tr>
+          ` : ''}
+          <tr style="background: #fafafa; font-weight: 700;">
+            <td style="padding: 10px; text-align: right;">Total Nilai Sesi:</td>
+            <td style="padding: 10px; text-align: right;">${this.formatIDR(total)}</td>
+          </tr>
+          <tr style="color: #2563eb;">
+            <td style="padding: 8px 10px; text-align: right;">Uang Muka (DP) Terbayar:</td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: 600;">- ${this.formatIDR(dp)}</td>
+          </tr>
+          <tr style="border-top: 2px solid #222; font-size: 15px; font-weight: 800;">
+            <td style="padding: 10px; text-align: right;">Sisa Tagihan:</td>
+            <td style="padding: 10px; text-align: right; color: ${balance <= 0 ? '#16a34a' : '#dc2626'};">
+              ${balance <= 0 ? 'LUNAS (Rp 0) ✅' : this.formatIDR(balance)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      ${s.bankName && s.bankAccount ? `
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; font-size: 12px; margin-bottom: 16px;">
+          <strong>Rekening Pembayaran:</strong><br>
+          Bank: ${this.escapeHtml(s.bankName)} | No. Rek: <strong>${this.escapeHtml(s.bankAccount)}</strong> | a.n ${this.escapeHtml(s.bankHolder || s.studioName)}
+        </div>
+      ` : ''}
+
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; font-size: 12px; color: #555;">
+        <div>
+          <em>Terima kasih telah mempercayakan momen Anda kepada ${this.escapeHtml(s.studioName || 'kami')}!</em>
+        </div>
+        <div style="text-align: center; width: 180px;">
+          <div style="margin-bottom: 40px;">Hormat Kami,</div>
+          <div style="font-weight: 700; color: #111; border-top: 1px solid #888; padding-top: 4px;">${this.escapeHtml(s.studioName || 'TEN Photography')}</div>
+        </div>
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+  },
+
+  closeInvoiceModal() {
+    const modal = document.getElementById('portal-invoice-modal');
+    if (modal) modal.style.display = 'none';
   },
 
   // --- HELPERS ---

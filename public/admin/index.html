@@ -714,9 +714,12 @@
                 <h4 style="font-size: 13px; font-weight: 600; color: #fff;">Daftar Foto & Catatan Khusus Pilihan Klien</h4>
                 <p style="font-size: 11px; color: var(--text-muted);">Klien memilih foto langsung dari galeri visual dan menyertakan instruksi edit.</p>
               </div>
-              <div style="display: flex; gap: 8px;">
-                <button type="button" class="btn btn-secondary btn-sm" onclick="App.copySelectedPhotos()">
-                  📋 Salin List Lightroom
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="App.copySelectedLightroomFilter()" title="Salin daftar nama file untuk Filter Adobe Lightroom">
+                  📋 Salin Filter Lightroom
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="App.downloadSelectedPhotosTxt()" title="Unduh berkas .txt berisi daftar nama file dan catatan klien">
+                  ⬇️ Unduh .TXT
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="App.openClientPortalFromModal()">
                   👁️ Buka Portal Klien
@@ -861,6 +864,8 @@
             <option value="reminder">🔔 Reminder H-1 Sesi Foto (Jadwal & Lokasi)</option>
             <option value="invoice">💳 Rincian Tagihan & Rekening Pembayaran</option>
             <option value="portal">🔗 Tautan Portal Klien (Live Progress & Info)</option>
+            <option value="selection_request">📸 Undangan Memilih Foto di Portal</option>
+            <option value="editing_status">🎨 Info Foto Sedang Diedit / Retouching</option>
             <option value="drive">📦 Galeri Siap / Link Unduhan Google Drive</option>
             <option value="review">⭐ Ucapan Terima Kasih & Minta Tag Instagram</option>
           </select>
