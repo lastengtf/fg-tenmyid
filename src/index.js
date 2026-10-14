@@ -50,9 +50,19 @@ export default {
 
     // 3. Static Assets serving via ASSETS binding (Cloudflare Workers Static Assets)
     if (env.ASSETS) {
+      if (pathname === '/admin' || pathname === '/admin/') {
+        const adminReq = new Request(new URL('/admin/index.html', request.url), request);
+        const res = await env.ASSETS.fetch(adminReq);
+        if (res.status !== 404) return res;
+      }
       const assetResponse = await env.ASSETS.fetch(request);
       if (assetResponse.status !== 404) {
         return assetResponse;
+      }
+      // If pathname starts with /admin, fallback to /admin/index.html
+      if (pathname.startsWith('/admin')) {
+        const adminIndexReq = new Request(new URL('/admin/index.html', request.url), request);
+        return await env.ASSETS.fetch(adminIndexReq);
       }
       // SPA Fallback for client-side routing
       const indexReq = new Request(new URL('/', request.url), request);
@@ -161,6 +171,187 @@ async function handleApi(pathname, method, request, env) {
       success: true,
       message: 'Daftar nomor foto pilihan Anda berhasil dikirim ke fotografer!',
       selectedPhotos: project.selectedPhotos
+    });
+  }
+
+  // Public Endpoint: Packages List
+  if (pathname === '/api/public/packages' && method === 'GET') {
+    const packages = await getAllPackages(env);
+    return jsonResponse({
+      packages: packages.map(p => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        price: p.price,
+        description: p.description
+      }))
+    });
+  }
+
+  // Public Endpoint: Studio Info
+  if (pathname === '/api/public/studio' && method === 'GET') {
+    const settings = await getSettings(env);
+    return jsonResponse({
+      studio: {
+        studioName: settings.studioName || 'TEN Photography',
+        tagline: settings.tagline || 'Visual Storyteller & Professional Photography Services',
+        phone: settings.phone || '',
+        email: settings.email || '',
+        instagram: settings.instagram || '@tenphotography',
+        bankName: settings.bankName || '',
+        bankAccount: settings.bankAccount || '',
+        bankHolder: settings.bankHolder || ''
+      }
+    });
+  }
+
+  // Public Endpoint: Inquiry Booking Submission
+  if (pathname === '/api/public/book' && method === 'POST') {
+    const data = await request.json();
+    const clientName = (data.name || data.clientName || '').trim();
+    const clientPhone = (data.phone || data.clientPhone || '').trim();
+    const clientEmail = (data.email || data.clientEmail || '').trim();
+    const category = (data.category || 'Wedding').trim();
+    const packageId = data.packageId || '';
+    const date = (data.date || '').trim();
+    const time = (data.time || '').trim();
+    const location = (data.location || '').trim();
+    const notes = (data.notes || '').trim();
+
+    if (!clientName || !clientPhone) {
+      return jsonResponse({ error: 'Nama dan nomor WhatsApp wajib diisi.' }, 400);
+    }
+
+    const allClients = await getAllClients(env);
+    const cleanPhone = clientPhone.replace(/\D/g, '');
+    let client = allClients.find(c => (c.phone || '').replace(/\D/g, '') === cleanPhone);
+
+    if (!client) {
+      client = {
+        id: `cli_${Date.now()}`,
+        name: clientName,
+        phone: clientPhone,
+        email: clientEmail,
+        instagram: (data.instagram || '').trim(),
+        notes: `Klien dari formulir reservasi publik web`,
+        createdAt: new Date().toISOString()
+      };
+      await saveClient(env, client);
+    }
+
+    let packageName = data.packageName || '';
+    let packagePrice = Number(data.packagePrice) || 0;
+    if (packageId) {
+      const allPkgs = await getAllPackages(env);
+      const pkg = allPkgs.find(p => p.id === packageId);
+      if (pkg) {
+        packageName = pkg.name;
+        packagePrice = pkg.price || 0;
+      }
+    }
+
+    const projectId = `proj_${Date.now()}`;
+    const portalKey = `pk_${Math.random().toString(36).substring(2, 10)}`;
+
+    const newProject = {
+      id: projectId,
+      title: `${category} - ${clientName}`,
+      clientId: client.id,
+      clientName: client.name,
+      clientPhone: client.phone,
+      clientEmail: client.email || clientEmail,
+      category,
+      packageName,
+      packagePrice,
+      addOns: [],
+      addOnsPrice: 0,
+      totalPrice: packagePrice,
+      dpAmount: 0,
+      dpDate: '',
+      paymentStatus: 'unpaid',
+      paymentNotes: 'Menunggu konfirmasi reservasi & DP',
+      workflowStatus: 'inquiry',
+      date,
+      time,
+      endTime: '',
+      location,
+      mapsUrl: '',
+      driveUrl: '',
+      selectionUrl: '',
+      selectedPhotos: '',
+      deliverables: [
+        { id: 1, text: 'Konfirmasi Jadwal & Pembayaran DP', done: false },
+        { id: 2, text: 'Sesi Pemotretan di Lokasi', done: false },
+        { id: 3, text: 'Kurasi & Seleksi Foto Pilihan', done: false },
+        { id: 4, text: 'Retouching & Color Grading Selesai', done: false },
+        { id: 5, text: 'Pengiriman Berkas Final via Cloud/Drive', done: false }
+      ],
+      expenses: [],
+      shotlist: [],
+      gearChecklist: [],
+      notes: notes ? `[Catatan Reservasi Klien]\n${notes}` : '',
+      portalKey,
+      source: 'public_booking',
+      createdAt: new Date().toISOString()
+    };
+
+    await saveProject(env, newProject);
+
+    return jsonResponse({
+      success: true,
+      message: 'Permintaan reservasi Anda berhasil dikirim! Tim fotografer kami akan segera menghubungi Anda melalui WhatsApp.',
+      project: {
+        id: projectId,
+        portalKey,
+        title: newProject.title,
+        category: newProject.category,
+        date: newProject.date,
+        portalUrl: `/?portal=${projectId}`
+      }
+    });
+  }
+
+  // Public Endpoint: Track project
+  if (pathname === '/api/public/track' && method === 'GET') {
+    const url = new URL(request.url);
+    const q = (url.searchParams.get('q') || '').trim();
+    if (!q) {
+      return jsonResponse({ error: 'Masukkan ID Sesi Foto atau nomor WhatsApp Anda.' }, 400);
+    }
+    let project = await getProject(env, q);
+    if (project) {
+      return jsonResponse({
+        found: true,
+        projectId: project.id,
+        title: project.title,
+        clientName: project.clientName,
+        workflowStatus: project.workflowStatus,
+        date: project.date
+      });
+    }
+    const allProjects = await getAllProjects(env);
+    const cleanQ = q.replace(/\D/g, '');
+    const matched = allProjects.find(p => {
+      if (p.portalKey === q || p.id === q) return true;
+      if (cleanQ && cleanQ.length >= 8) {
+        const cleanPhone = (p.clientPhone || '').replace(/\D/g, '');
+        return cleanPhone.endsWith(cleanQ) || cleanQ.endsWith(cleanPhone);
+      }
+      return false;
+    });
+    if (!matched) {
+      return jsonResponse({
+        found: false,
+        message: 'Tidak ditemukan sesi foto yang cocok dengan pencarian Anda.'
+      }, 404);
+    }
+    return jsonResponse({
+      found: true,
+      projectId: matched.id,
+      title: matched.title,
+      clientName: matched.clientName,
+      workflowStatus: matched.workflowStatus,
+      date: matched.date
     });
   }
 

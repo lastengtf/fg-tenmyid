@@ -22,9 +22,10 @@ export async function onRequest(context) {
   const isApi = pathname.startsWith('/api/');
   const isPublicAuth = pathname === '/api/auth/login';
   const isPortal = pathname.startsWith('/api/portal/');
+  const isPublicApi = pathname.startsWith('/api/public/');
 
   // Allow static files and public API endpoints
-  if (!isApi || isPublicAuth || isPortal) {
+  if (!isApi || isPublicAuth || isPortal || isPublicApi) {
     return await next();
   }
 
