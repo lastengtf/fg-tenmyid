@@ -49,10 +49,17 @@ export async function onRequestGet(context) {
     } else if (p.paymentStatus === 'paid') {
       totalRevenue += (total - dp);
     }
+
+    if (Array.isArray(p.expenses)) {
+      for (const exp of p.expenses) {
+        totalExpenses += Number(exp.amount) || 0;
+      }
+    }
   }
 
   // Sort upcoming shoots ascending
   upcomingList.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const netProfit = totalRevenue - totalExpenses;
 
   return jsonResponse({
     stats: {
@@ -64,7 +71,9 @@ export async function onRequestGet(context) {
       galleryReady: galleryReadyCount,
       totalUnpaidAmount,
       unpaidProjectsCount,
-      totalRevenue
+      totalRevenue,
+      totalExpenses,
+      netProfit
     },
     upcomingList: upcomingList.slice(0, 5),
     recentProjects: projects.slice(0, 5)

@@ -86,6 +86,21 @@
         </div>
       </div>
 
+      <!-- Pemilihan Nomor Foto oleh Klien (Proofing) -->
+      <div class="card" id="portal-selection-card">
+        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text-muted);">📸 Pemilihan Nomor Foto untuk Diedit</h3>
+        <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 10px;">
+          Setelah melihat foto di Google Drive, ketik nomor/nama file foto yang Anda pilih di bawah ini (pisahkan dengan koma):
+        </p>
+        <div class="form-group" style="margin-bottom: 8px;">
+          <textarea id="portal-selection-input" class="form-control" style="min-height: 70px;" placeholder="Contoh: IMG_0124, IMG_0156, IMG_0210..."></textarea>
+        </div>
+        <button id="portal-btn-save-selection" class="btn btn-blue btn-sm">
+          💾 Kirim Nomor Pilihan ke Fotografer
+        </button>
+        <div id="portal-selection-feedback" style="display: none; margin-top: 8px; font-size: 12px; font-weight: 500;"></div>
+      </div>
+
       <!-- Deliverables Checklist -->
       <div class="card">
         <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted);">📦 Rincian Output & Deliverables</h3>
@@ -199,6 +214,11 @@
               <div class="stat-value" id="stat-unpaid-amount" style="color: var(--danger-text);">Rp 0</div>
               <div class="stat-sub" id="stat-unpaid-count">0 proyek</div>
             </div>
+            <div class="stat-card">
+              <div class="stat-label">Estimasi Profit Bersih</div>
+              <div class="stat-value" id="stat-net-profit" style="color: #3fb950;">Rp 0</div>
+              <div class="stat-sub" id="stat-total-expenses">Biaya ops: Rp 0</div>
+            </div>
           </div>
 
           <!-- Upcoming Shoots -->
@@ -246,8 +266,11 @@
               <button class="filter-pill" data-filter="unpaid">Belum Lunas</button>
               <button class="filter-pill" data-filter="completed">Selesai</button>
             </div>
-            <div class="search-input-wrap">
-              <input type="text" id="project-search-input" class="form-control" placeholder="Cari sesi, klien, lokasi...">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button id="btn-export-csv" class="btn btn-secondary btn-sm" onclick="App.exportCSV()">📥 Ekspor CSV</button>
+              <div class="search-input-wrap">
+                <input type="text" id="project-search-input" class="form-control" placeholder="Cari sesi, klien, lokasi...">
+              </div>
             </div>
           </div>
 
@@ -406,150 +429,377 @@
 
   <!-- MODAL: Proyek Foto (Create / Edit) -->
   <div id="modal-project" class="modal-overlay" style="display: none;">
-    <div class="modal-container">
+    <div class="modal-container" style="max-width: 750px;">
       <div class="modal-header">
         <h3 class="modal-title" id="modal-project-title">Tambah Sesi Foto Baru</h3>
         <button class="modal-close" onclick="App.closeModals()">&times;</button>
       </div>
+
+      <!-- Modal Tabs Navigation -->
+      <div class="modal-tabs">
+        <button type="button" class="modal-tab-btn active" data-tab="info">Informasi & Sesi</button>
+        <button type="button" class="modal-tab-btn" data-tab="shotlist">📷 Shot List Momen</button>
+        <button type="button" class="modal-tab-btn" data-tab="gear">🎒 Perlengkapan Gear</button>
+        <button type="button" class="modal-tab-btn" data-tab="expenses">💰 Biaya Operasional</button>
+        <button type="button" class="modal-tab-btn" data-tab="selection">📸 Pilihan Klien</button>
+      </div>
+
       <form id="form-project">
         <div class="modal-body">
           <input type="hidden" id="proj-id">
 
-          <div class="form-row">
-            <div class="form-group" style="flex: 2;">
-              <label class="form-label">Nama Sesi Foto / Proyek *</label>
-              <input type="text" id="proj-title" class="form-control" placeholder="cth: Wedding Dimas & Sarah" required>
+          <!-- TAB 1: INFORMASI & SESI -->
+          <div id="proj-tab-info" class="proj-tab-pane">
+            <div class="form-row">
+              <div class="form-group" style="flex: 2;">
+                <label class="form-label">Nama Sesi Foto / Proyek *</label>
+                <input type="text" id="proj-title" class="form-control" placeholder="cth: Wedding Dimas & Sarah" required>
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label">Kategori</label>
+                <select id="proj-category" class="form-control">
+                  <option value="Wedding">Wedding</option>
+                  <option value="Prewedding">Prewedding</option>
+                  <option value="Portrait">Portrait / Studio</option>
+                  <option value="Wisuda">Wisuda / Graduation</option>
+                  <option value="Event">Event / Acara</option>
+                  <option value="Komersial">Komersial / Produk</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+              </div>
             </div>
-            <div class="form-group" style="flex: 1;">
-              <label class="form-label">Kategori</label>
-              <select id="proj-category" class="form-control">
-                <option value="Wedding">Wedding</option>
-                <option value="Prewedding">Prewedding</option>
-                <option value="Portrait">Portrait / Studio</option>
-                <option value="Wisuda">Wisuda / Graduation</option>
-                <option value="Event">Event / Acara</option>
-                <option value="Komersial">Komersial / Produk</option>
-                <option value="Lainnya">Lainnya</option>
-              </select>
+
+            <!-- Klien -->
+            <div class="form-row">
+              <div class="form-group" style="flex: 1.5;">
+                <label class="form-label">Pilih Klien</label>
+                <select id="proj-client-select" class="form-control">
+                  <option value="">-- Ketik Klien Baru di bawah --</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex: 1.5;">
+                <label class="form-label">Nama Klien (atau Nama Baru) *</label>
+                <input type="text" id="proj-client-name" class="form-control" placeholder="Nama Klien" required>
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label">Nomor WhatsApp</label>
+                <input type="text" id="proj-client-phone" class="form-control" placeholder="08123456789">
+              </div>
+            </div>
+
+            <!-- Jadwal & Lokasi -->
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Tanggal Pemotretan</label>
+                <input type="date" id="proj-date" class="form-control">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Jam Mulai</label>
+                <input type="time" id="proj-time" class="form-control">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Jam Selesai</label>
+                <input type="time" id="proj-endtime" class="form-control">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group" style="flex: 2;">
+                <label class="form-label">Lokasi / Venue</label>
+                <input type="text" id="proj-location" class="form-control" placeholder="Studio 4 Kemang / Grand Ballroom...">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label">Link Google Maps</label>
+                <input type="url" id="proj-maps-url" class="form-control" placeholder="https://maps.app.goo.gl/...">
+              </div>
+            </div>
+
+            <!-- Status Alur Kerja -->
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Tahapan Alur Kerja</label>
+                <select id="proj-workflow-status" class="form-control">
+                  <option value="inquiry">1. Inquiry / Diskusi Awal</option>
+                  <option value="booked">2. Booked / Terjadwal</option>
+                  <option value="dp_received">3. DP Diterima</option>
+                  <option value="shooting_done">4. Sesi Foto Selesai</option>
+                  <option value="selection">5. Seleksi Foto oleh Klien</option>
+                  <option value="editing">6. Proses Editing / Retouch</option>
+                  <option value="gallery_ready">7. Galeri Siap Kirim</option>
+                  <option value="delivered">8. Galeri Terkirim ke Klien</option>
+                  <option value="completed">9. Selesai & Ditutup</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Paket Layanan</label>
+                <select id="proj-package-select" class="form-control">
+                  <option value="">-- Pilih Paket (Opsional) --</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Keuangan -->
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Harga Paket (Rp)</label>
+                <input type="number" id="proj-package-price" class="form-control" value="0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Biaya Tambahan / Add-on (Rp)</label>
+                <input type="number" id="proj-addons-price" class="form-control" value="0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">DP Masuk (Rp)</label>
+                <input type="number" id="proj-dp-amount" class="form-control" value="0">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Status Pembayaran</label>
+                <select id="proj-payment-status" class="form-control">
+                  <option value="unpaid">Belum Bayar</option>
+                  <option value="dp_paid">DP Terbayar</option>
+                  <option value="paid">Lunas</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tanggal DP Masuk</label>
+                <input type="date" id="proj-dp-date" class="form-control">
+              </div>
+            </div>
+
+            <!-- Link Hasil Foto -->
+            <div class="form-group">
+              <label class="form-label">Link Galeri / Google Drive Hasil Foto</label>
+              <input type="url" id="proj-drive-url" class="form-control" placeholder="https://drive.google.com/drive/folders/...">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Catatan Tim & Brief</label>
+              <textarea id="proj-notes" class="form-control" placeholder="Instruksi pose, rundown, permintaan khusus klien..."></textarea>
             </div>
           </div>
 
-          <!-- Klien -->
-          <div class="form-row">
-            <div class="form-group" style="flex: 1.5;">
-              <label class="form-label">Pilih Klien</label>
-              <select id="proj-client-select" class="form-control">
-                <option value="">-- Ketik Klien Baru di bawah --</option>
-              </select>
+          <!-- TAB 2: SHOT LIST LAPANGAN -->
+          <div id="proj-tab-shotlist" class="proj-tab-pane" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div>
+                <h4 style="font-size: 13px; font-weight: 600; color: #fff;">Daftar Momen Wajib Difoto</h4>
+                <p style="font-size: 11px; color: var(--text-muted);">Centang momen yang sudah berhasil Anda abadikan di lapangan.</p>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="App.loadDefaultShotlist()">+ Template Standar</button>
             </div>
-            <div class="form-group" style="flex: 1.5;">
-              <label class="form-label">Nama Klien (atau Nama Baru) *</label>
-              <input type="text" id="proj-client-name" class="form-control" placeholder="Nama Klien" required>
-            </div>
-            <div class="form-group" style="flex: 1;">
-              <label class="form-label">Nomor WhatsApp</label>
-              <input type="text" id="proj-client-phone" class="form-control" placeholder="08123456789">
+
+            <div id="proj-shotlist-items" style="margin-bottom: 12px;"></div>
+
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="proj-new-shotlist-input" class="form-control" placeholder="Tambah momen wajib (misal: Sungkeman, Cium Kening)...">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="App.addShotlistItem()">+ Tambah</button>
             </div>
           </div>
 
-          <!-- Jadwal & Lokasi -->
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Tanggal Pemotretan</label>
-              <input type="date" id="proj-date" class="form-control">
+          <!-- TAB 3: GEAR & EQUIPMENT -->
+          <div id="proj-tab-gear" class="proj-tab-pane" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div>
+                <h4 style="font-size: 13px; font-weight: 600; color: #fff;">Checklist Perlengkapan Fotografi</h4>
+                <p style="font-size: 11px; color: var(--text-muted);">Pastikan semua alat sudah masuk tas sebelum berangkat ke lokasi.</p>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="App.loadDefaultGearList()">+ Gear Standar</button>
             </div>
-            <div class="form-group">
-              <label class="form-label">Jam Mulai</label>
-              <input type="time" id="proj-time" class="form-control">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Jam Selesai</label>
-              <input type="time" id="proj-endtime" class="form-control">
+
+            <div id="proj-gear-items" style="margin-bottom: 12px;"></div>
+
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="proj-new-gear-input" class="form-control" placeholder="Tambah perlengkapan (misal: Baterai Cadangan, Flash Godox)...">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="App.addGearItem()">+ Tambah</button>
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group" style="flex: 2;">
-              <label class="form-label">Lokasi / Venue</label>
-              <input type="text" id="proj-location" class="form-control" placeholder="Studio 4 Kemang / Grand Ballroom...">
+          <!-- TAB 4: BIAYA & PROFIT BERSIH -->
+          <div id="proj-tab-expenses" class="proj-tab-pane" style="display: none;">
+            <div style="margin-bottom: 12px;">
+              <h4 style="font-size: 13px; font-weight: 600; color: #fff;">Pencatatan Biaya Operasional Proyek</h4>
+              <p style="font-size: 11px; color: var(--text-muted);">Catat sewa studio, honor asisten, cetak album/kanvas, dan transport.</p>
             </div>
-            <div class="form-group" style="flex: 1;">
-              <label class="form-label">Link Google Maps</label>
-              <input type="url" id="proj-maps-url" class="form-control" placeholder="https://maps.app.goo.gl/...">
+
+            <div id="proj-expense-items" style="margin-bottom: 12px;"></div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+              <input type="text" id="proj-new-expense-name" class="form-control" placeholder="Nama biaya (misal: Sewa Studio Kemang)" style="flex: 2;">
+              <input type="number" id="proj-new-expense-amount" class="form-control" placeholder="Nominal (Rp)" style="flex: 1;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="App.addExpenseItem()">+ Tambah</button>
+            </div>
+
+            <!-- Rekap Kalkulator Profit -->
+            <div style="background: #12161f; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px;">
+              <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                <span style="color: var(--text-muted);">Total Nilai Paket:</span>
+                <span id="proj-calc-revenue" style="font-weight: 600;">Rp 0</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                <span style="color: var(--text-muted);">Total Biaya Operasional:</span>
+                <span id="proj-calc-expenses" style="color: var(--danger-text); font-weight: 600;">Rp 0</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; border-top: 1px solid var(--border); padding-top: 6px;">
+                <span>Estimasi Profit Bersih:</span>
+                <span id="proj-calc-net" style="color: #3fb950;">Rp 0</span>
+              </div>
             </div>
           </div>
 
-          <!-- Status Alur Kerja -->
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Tahapan Alur Kerja</label>
-              <select id="proj-workflow-status" class="form-control">
-                <option value="inquiry">1. Inquiry / Diskusi Awal</option>
-                <option value="booked">2. Booked / Terjadwal</option>
-                <option value="dp_received">3. DP Diterima</option>
-                <option value="shooting_done">4. Sesi Foto Selesai</option>
-                <option value="selection">5. Seleksi Foto oleh Klien</option>
-                <option value="editing">6. Proses Editing / Retouch</option>
-                <option value="gallery_ready">7. Galeri Siap Kirim</option>
-                <option value="delivered">8. Galeri Terkirim ke Klien</option>
-                <option value="completed">9. Selesai & Ditutup</option>
-              </select>
+          <!-- TAB 5: PILIHAN FOTO KLIEN -->
+          <div id="proj-tab-selection" class="proj-tab-pane" style="display: none;">
+            <div style="margin-bottom: 12px;">
+              <h4 style="font-size: 13px; font-weight: 600; color: #fff;">Daftar Foto yang Dipilih Klien</h4>
+              <p style="font-size: 11px; color: var(--text-muted);">Nomor foto ini diisi oleh klien melalui tautan portal mereka.</p>
             </div>
-            <div class="form-group">
-              <label class="form-label">Paket Layanan</label>
-              <select id="proj-package-select" class="form-control">
-                <option value="">-- Pilih Paket (Opsional) --</option>
-              </select>
-            </div>
-          </div>
 
-          <!-- Keuangan -->
-          <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Harga Paket (Rp)</label>
-              <input type="number" id="proj-package-price" class="form-control" value="0">
+              <textarea id="proj-selected-photos" class="form-control" style="min-height: 100px;" placeholder="Belum ada nomor foto yang dipilih oleh klien."></textarea>
             </div>
-            <div class="form-group">
-              <label class="form-label">Biaya Tambahan / Add-on (Rp)</label>
-              <input type="number" id="proj-addons-price" class="form-control" value="0">
-            </div>
-            <div class="form-group">
-              <label class="form-label">DP Masuk (Rp)</label>
-              <input type="number" id="proj-dp-amount" class="form-control" value="0">
-            </div>
-          </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Status Pembayaran</label>
-              <select id="proj-payment-status" class="form-control">
-                <option value="unpaid">Belum Bayar</option>
-                <option value="dp_paid">DP Terbayar</option>
-                <option value="paid">Lunas</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Tanggal DP Masuk</label>
-              <input type="date" id="proj-dp-date" class="form-control">
-            </div>
-          </div>
-
-          <!-- Link Hasil Foto -->
-          <div class="form-group">
-            <label class="form-label">Link Galeri / Google Drive Hasil Foto</label>
-            <input type="url" id="proj-drive-url" class="form-control" placeholder="https://drive.google.com/drive/folders/...">
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Catatan Tim / Shotlist Fotografer</label>
-            <textarea id="proj-notes" class="form-control" placeholder="Instruksi pose, rundown, permintaan khusus klien..."></textarea>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.copySelectedPhotos()">
+              📋 Salin Nomor Foto (Untuk Filter Lightroom)
+            </button>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="App.closeModals()">Batal</button>
-          <button type="submit" class="btn btn-primary">Simpan Proyek</button>
+
+        <div class="modal-footer" style="justify-content: space-between;">
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="proj-btn-print-invoice" class="btn btn-secondary btn-sm" style="display: none;" onclick="App.openInvoiceModal()">
+              🖨️ Cetak Kwitansi
+            </button>
+            <button type="button" id="proj-btn-wa-msg" class="btn btn-secondary btn-sm" style="display: none;" onclick="App.openWAModal()">
+              💬 Template WA
+            </button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-secondary" onclick="App.closeModals()">Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan Proyek</button>
+          </div>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Cetak Kwitansi / Invoice -->
+  <div id="modal-invoice" class="modal-overlay" style="display: none;">
+    <div class="modal-container" style="max-width: 720px;">
+      <div class="modal-header no-print">
+        <h3 class="modal-title">Kwitansi & Invoice Pembayaran</h3>
+        <button class="modal-close" onclick="App.closeModals()">&times;</button>
+      </div>
+      <div class="modal-body" style="background: #e6edf3; padding: 20px;">
+        <div id="printable-invoice" class="invoice-sheet">
+          <div class="invoice-header">
+            <div>
+              <div class="invoice-brand" id="inv-studio-name">TEN PHOTOGRAPHY</div>
+              <div style="font-size: 12px; color: #586069; margin-top: 4px;" id="inv-studio-contact">WhatsApp: - | fg.ten.my.id</div>
+            </div>
+            <div class="invoice-meta">
+              <div style="font-size: 16px; font-weight: 700; color: #24292e;">KWITANSI PEMBAYARAN</div>
+              <div style="margin-top: 4px;">No: <strong id="inv-number">INV-001</strong></div>
+              <div>Tanggal: <span id="inv-date">-</span></div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 20px; font-size: 13px;">
+            <div style="color: #586069; font-size: 11px; text-transform: uppercase; font-weight: 600;">Diberikan Kepada:</div>
+            <div style="font-size: 16px; font-weight: 700; color: #111;" id="inv-client-name">Klien</div>
+            <div style="color: #586069;" id="inv-client-phone">-</div>
+          </div>
+
+          <table class="invoice-table">
+            <thead>
+              <tr>
+                <th>Deskripsi Layanan / Paket</th>
+                <th style="text-align: right;">Jumlah</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <strong id="inv-project-title">Sesi Foto</strong>
+                  <div style="font-size: 11px; color: #586069;" id="inv-package-desc">Paket Standar</div>
+                </td>
+                <td style="text-align: right; font-weight: 600;" id="inv-package-price">Rp 0</td>
+              </tr>
+              <tr id="inv-row-addons" style="display: none;">
+                <td>
+                  <strong>Biaya Tambahan / Add-on</strong>
+                </td>
+                <td style="text-align: right; font-weight: 600;" id="inv-addons-price">Rp 0</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+            <div style="width: 280px;">
+              <div class="invoice-total-row">
+                <span>Total Biaya:</span>
+                <strong id="inv-total-price">Rp 0</strong>
+              </div>
+              <div class="invoice-total-row">
+                <span>Uang Muka (DP):</span>
+                <span id="inv-dp-amount" style="color: #0366d6;">Rp 0</span>
+              </div>
+              <div class="invoice-total-row" style="border-top: 1px solid #eaecef; padding-top: 8px; font-size: 15px; font-weight: 800;">
+                <span>Sisa Tagihan:</span>
+                <span id="inv-balance" style="color: #24292e;">Rp 0</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 28px; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 18px; border-top: 1px dashed #d1d5da;">
+            <div>
+              <div id="inv-badge-status" class="invoice-badge-paid">LUNAS</div>
+              <div style="font-size: 11px; color: #586069; margin-top: 8px;" id="inv-bank-info">Pembayaran via Transfer: -</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 12px; color: #586069; margin-bottom: 40px;">Fotografer / Studio,</div>
+              <div style="font-weight: 700; border-top: 1px solid #333; padding-top: 4px; min-width: 140px;" id="inv-signer-name">TEN Photography</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer no-print">
+        <button type="button" class="btn btn-secondary" onclick="App.closeModals()">Tutup</button>
+        <button type="button" class="btn btn-primary" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Template Pesan WhatsApp Cepat -->
+  <div id="modal-wa-templates" class="modal-overlay" style="display: none;">
+    <div class="modal-container" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Template Pesan WhatsApp Cepat</h3>
+        <button class="modal-close" onclick="App.closeModals()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Pilih Jenis Pesan</label>
+          <select id="wa-template-select" class="form-control" onchange="App.onWATemplateChange()">
+            <option value="reminder">🔔 Reminder H-1 Sesi Foto (Jadwal & Lokasi)</option>
+            <option value="invoice">💳 Rincian Tagihan & Rekening Pembayaran</option>
+            <option value="portal">🔗 Tautan Portal Klien (Live Progress & Info)</option>
+            <option value="drive">📦 Galeri Siap / Link Unduhan Google Drive</option>
+            <option value="review">⭐ Ucapan Terima Kasih & Minta Tag Instagram</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Pratinjau Teks Pesan (Dapat Diedit)</label>
+          <textarea id="wa-template-preview" class="form-control" style="min-height: 160px;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="App.closeModals()">Batal</button>
+        <button type="button" class="btn btn-secondary" onclick="App.copyWAText()">📋 Salin Teks</button>
+        <a id="wa-btn-send-direct" href="#" target="_blank" class="btn btn-primary">💬 Buka WhatsApp & Kirim</a>
+      </div>
     </div>
   </div>
 

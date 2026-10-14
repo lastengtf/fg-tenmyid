@@ -69,6 +69,10 @@ export async function onRequestPut(context) {
       driveUrl: data.driveUrl !== undefined ? data.driveUrl.trim() : existing.driveUrl,
       selectionUrl: data.selectionUrl !== undefined ? data.selectionUrl.trim() : existing.selectionUrl,
       deliverables: data.deliverables !== undefined ? data.deliverables : existing.deliverables,
+      expenses: data.expenses !== undefined ? data.expenses : (existing.expenses || []),
+      shotlist: data.shotlist !== undefined ? data.shotlist : (existing.shotlist || []),
+      gearChecklist: data.gearChecklist !== undefined ? data.gearChecklist : (existing.gearChecklist || []),
+      selectedPhotos: data.selectedPhotos !== undefined ? data.selectedPhotos.trim() : (existing.selectedPhotos || ''),
       notes: data.notes !== undefined ? data.notes.trim() : existing.notes
     });
 

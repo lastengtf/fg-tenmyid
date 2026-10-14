@@ -106,6 +106,10 @@ export async function onRequestPost(context) {
         { id: 1, text: 'Foto Selesai Diedit', done: false },
         { id: 2, text: 'File High-Res Dikirim via Cloud/Drive', done: false }
       ],
+      expenses: Array.isArray(data.expenses) ? data.expenses : [],
+      shotlist: Array.isArray(data.shotlist) ? data.shotlist : [],
+      gearChecklist: Array.isArray(data.gearChecklist) ? data.gearChecklist : [],
+      selectedPhotos: (data.selectedPhotos || '').trim(),
       notes: (data.notes || '').trim()
     });
 

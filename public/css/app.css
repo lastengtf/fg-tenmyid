@@ -633,3 +633,150 @@ tr:hover td {
     gap: 0;
   }
 }
+
+/* Modal Tabs */
+.modal-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 18px;
+  background: #12161f;
+}
+
+.modal-tab-btn {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-tab-btn:hover {
+  color: var(--text-main);
+}
+
+.modal-tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+/* Expenses & List Items */
+.expense-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+}
+
+/* Invoice Sheet & Print Styles */
+.invoice-sheet {
+  background: #fff;
+  color: #111;
+  padding: 36px 40px;
+  border-radius: var(--radius);
+  font-family: var(--font-family);
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #e1e4e8;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+}
+
+.invoice-brand {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111;
+}
+
+.invoice-meta {
+  text-align: right;
+  font-size: 13px;
+  color: #586069;
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.invoice-table th {
+  background: #f6f8fa;
+  color: #24292e;
+  border-bottom: 2px solid #e1e4e8;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.invoice-table td {
+  padding: 12px;
+  border-bottom: 1px solid #eaecef;
+  color: #24292e;
+  font-size: 13px;
+}
+
+.invoice-total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.invoice-badge-paid {
+  display: inline-block;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #22863a;
+  border: 2px solid #22863a;
+  border-radius: 4px;
+  letter-spacing: 1px;
+}
+
+.invoice-badge-unpaid {
+  display: inline-block;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #cb2431;
+  border: 2px solid #cb2431;
+  border-radius: 4px;
+  letter-spacing: 1px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-invoice, #printable-invoice * {
+    visibility: visible;
+  }
+  #printable-invoice {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .modal-overlay, .modal-header, .modal-footer, .no-print {
+    display: none !important;
+  }
+}

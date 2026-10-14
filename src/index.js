@@ -124,6 +124,7 @@ async function handleApi(pathname, method, request, env) {
         workflowStatus: project.workflowStatus,
         driveUrl: project.driveUrl,
         selectionUrl: project.selectionUrl,
+        selectedPhotos: project.selectedPhotos || '',
         deliverables: project.deliverables || []
       },
       studio: {
@@ -135,6 +136,31 @@ async function handleApi(pathname, method, request, env) {
         bankAccount: settings.bankAccount,
         bankHolder: settings.bankHolder
       }
+    });
+  }
+
+  // Public Endpoint: Submit photo selection
+  if (pathname.startsWith('/api/portal/') && method === 'POST') {
+    const id = pathname.replace('/api/portal/', '');
+    let project = await getProject(env, id);
+    if (!project) {
+      const all = await getAllProjects(env);
+      project = all.find(p => p.portalKey === id || p.id === id);
+    }
+    if (!project) {
+      return jsonResponse({ error: 'Data sesi foto tidak ditemukan.' }, 404);
+    }
+    const data = await request.json();
+    project.selectedPhotos = (data.selectedPhotos || '').trim();
+    project.selectedAt = new Date().toISOString();
+    if (project.workflowStatus === 'shooting_done') {
+      project.workflowStatus = 'selection';
+    }
+    await saveProject(env, project);
+    return jsonResponse({
+      success: true,
+      message: 'Daftar nomor foto pilihan Anda berhasil dikirim ke fotografer!',
+      selectedPhotos: project.selectedPhotos
     });
   }
 
@@ -171,6 +197,7 @@ async function handleApi(pathname, method, request, env) {
     let inEditingCount = 0;
     let galleryReadyCount = 0;
     let totalRevenue = 0;
+    let totalExpenses = 0;
     let totalUnpaidAmount = 0;
     let unpaidProjectsCount = 0;
     const upcomingList = [];
@@ -192,8 +219,15 @@ async function handleApi(pathname, method, request, env) {
       } else if (p.paymentStatus === 'paid') {
         totalRevenue += (total - dp);
       }
+
+      if (Array.isArray(p.expenses)) {
+        for (const exp of p.expenses) {
+          totalExpenses += Number(exp.amount) || 0;
+        }
+      }
     }
     upcomingList.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+    const netProfit = totalRevenue - totalExpenses;
 
     return jsonResponse({
       stats: {
@@ -205,7 +239,9 @@ async function handleApi(pathname, method, request, env) {
         galleryReady: galleryReadyCount,
         totalUnpaidAmount,
         unpaidProjectsCount,
-        totalRevenue
+        totalRevenue,
+        totalExpenses,
+        netProfit
       },
       upcomingList: upcomingList.slice(0, 5),
       recentProjects: projects.slice(0, 5)
@@ -349,6 +385,10 @@ async function handleApi(pathname, method, request, env) {
           { id: 1, text: 'Foto Selesai Diedit', done: false },
           { id: 2, text: 'File High-Res Dikirim via Cloud/Drive', done: false }
         ],
+        expenses: Array.isArray(data.expenses) ? data.expenses : [],
+        shotlist: Array.isArray(data.shotlist) ? data.shotlist : [],
+        gearChecklist: Array.isArray(data.gearChecklist) ? data.gearChecklist : [],
+        selectedPhotos: (data.selectedPhotos || '').trim(),
         notes: (data.notes || '').trim()
       });
 
@@ -404,6 +444,10 @@ async function handleApi(pathname, method, request, env) {
         driveUrl: data.driveUrl !== undefined ? data.driveUrl.trim() : existing.driveUrl,
         selectionUrl: data.selectionUrl !== undefined ? data.selectionUrl.trim() : existing.selectionUrl,
         deliverables: data.deliverables !== undefined ? data.deliverables : existing.deliverables,
+        expenses: data.expenses !== undefined ? data.expenses : (existing.expenses || []),
+        shotlist: data.shotlist !== undefined ? data.shotlist : (existing.shotlist || []),
+        gearChecklist: data.gearChecklist !== undefined ? data.gearChecklist : (existing.gearChecklist || []),
+        selectedPhotos: data.selectedPhotos !== undefined ? data.selectedPhotos.trim() : (existing.selectedPhotos || ''),
         notes: data.notes !== undefined ? data.notes.trim() : existing.notes
       });
       return jsonResponse({ success: true, project: updated });

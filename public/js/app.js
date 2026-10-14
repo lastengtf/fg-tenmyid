@@ -5,6 +5,8 @@ const App = {
   clients: [],
   packages: [],
   settings: {},
+  currentProject: null, // Holds active project being viewed/edited
+  activeProjectTab: 'info',
 
   // Workflow label mapping
   statusLabels: {
@@ -200,6 +202,14 @@ const App = {
       addPackageBtn.addEventListener('click', () => this.openPackageModal());
     }
 
+    // Project Modal Tabs
+    document.querySelectorAll('.modal-tabs .modal-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        this.switchProjectTab(tab);
+      });
+    });
+
     // Project Modal Select Client event
     const projClientSelect = document.getElementById('proj-client-select');
     if (projClientSelect) {
@@ -222,9 +232,16 @@ const App = {
         const opt = projPkgSelect.selectedOptions[0];
         if (opt && opt.dataset.price) {
           document.getElementById('proj-package-price').value = opt.dataset.price;
+          this.updateExpenseCalculations();
         }
       });
     }
+
+    // Live expense calculation when price inputs change
+    ['proj-package-price', 'proj-addons-price'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', () => this.updateExpenseCalculations());
+    });
 
     // Form Project Submit
     const formProject = document.getElementById('form-project');
@@ -310,6 +327,12 @@ const App = {
       document.getElementById('stat-unpaid-amount').textContent = this.formatIDR(stats.totalUnpaidAmount || 0);
       document.getElementById('stat-unpaid-count').textContent = `${stats.unpaidProjectsCount || 0} proyek`;
 
+      const netProfitEl = document.getElementById('stat-net-profit');
+      if (netProfitEl) netProfitEl.textContent = this.formatIDR(stats.netProfit || 0);
+
+      const totalExpEl = document.getElementById('stat-total-expenses');
+      if (totalExpEl) totalExpEl.textContent = `Biaya ops: ${this.formatIDR(stats.totalExpenses || 0)}`;
+
       // Upcoming shoots list
       const upcomingEl = document.getElementById('dashboard-upcoming-list');
       if (res.upcomingList && res.upcomingList.length > 0) {
@@ -321,9 +344,12 @@ const App = {
                 👤 ${this.escapeHtml(p.clientName)} &bull; 📍 ${this.escapeHtml(p.location || 'Lokasi belum diset')}
               </div>
             </div>
-            <div style="text-align: right;">
+            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
               <div style="font-weight: 600; color: var(--accent); font-size: 13px;">${this.formatDate(p.date)} ${p.time ? `@ ${p.time}` : ''}</div>
-              <span class="badge badge-${p.workflowStatus}">${this.statusLabels[p.workflowStatus] || p.workflowStatus}</span>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <span class="badge badge-${p.workflowStatus}">${this.statusLabels[p.workflowStatus] || p.workflowStatus}</span>
+                <a href="${this.googleCalendarUrl(p)}" target="_blank" class="btn btn-secondary btn-sm" style="font-size: 10px; padding: 2px 6px;" title="Tambah ke Google Calendar">📅 Kalender</a>
+              </div>
             </div>
           </div>
         `).join('');
@@ -348,7 +374,10 @@ const App = {
             <td><span class="badge badge-${p.workflowStatus}">${this.statusLabels[p.workflowStatus] || p.workflowStatus}</span></td>
             <td><span class="badge badge-${p.paymentStatus}">${this.paymentLabels[p.paymentStatus] || p.paymentStatus}</span></td>
             <td>
-              <button class="btn btn-secondary btn-sm" onclick="App.openProjectModal('${p.id}')">Detail / Edit</button>
+              <div style="display: inline-flex; gap: 4px;">
+                <button class="btn btn-secondary btn-sm" onclick="App.openProjectModal('${p.id}')">Detail</button>
+                <button class="btn btn-secondary btn-sm" onclick="App.openWAModal('${p.id}')">💬 WA</button>
+              </div>
             </td>
           </tr>
         `).join('');
@@ -382,6 +411,7 @@ const App = {
               <div style="display: flex; gap: 6px; margin-top: 4px; align-items: center;">
                 <span class="badge" style="font-size: 10px;">${this.escapeHtml(p.category || 'Foto')}</span>
                 ${p.packageName ? `<span style="font-size: 11px; color: var(--text-dim);">${this.escapeHtml(p.packageName)}</span>` : ''}
+                ${p.selectedPhotos ? `<span class="badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 10px;" title="Foto sudah dipilih klien">📸 Dipilih</span>` : ''}
               </div>
             </td>
             <td>
@@ -413,10 +443,16 @@ const App = {
             </td>
             <td style="text-align: right; white-space: nowrap;">
               <div style="display: inline-flex; gap: 4px;">
-                <button class="btn btn-secondary btn-sm" title="Bagikan link ke klien" onclick="App.openSharePortal('${p.id}', '${this.escapeHtml(p.title)}', '${p.clientPhone || ''}')">
+                <button class="btn btn-secondary btn-sm" title="Template WhatsApp" onclick="App.openWAModal('${p.id}')">
+                  💬 WA
+                </button>
+                <button class="btn btn-secondary btn-sm" title="Cetak Kwitansi" onclick="App.openInvoiceModal('${p.id}')">
+                  🖨️
+                </button>
+                <button class="btn btn-secondary btn-sm" title="Bagikan link portal ke klien" onclick="App.openSharePortal('${p.id}', '${this.escapeHtml(p.title)}', '${p.clientPhone || ''}')">
                   🔗 Portal
                 </button>
-                ${p.driveUrl ? `<a href="${p.driveUrl}" target="_blank" class="btn btn-secondary btn-sm" title="Buka Drive Galeri">☁️ Drive</a>` : ''}
+                ${p.driveUrl ? `<a href="${p.driveUrl}" target="_blank" class="btn btn-secondary btn-sm" title="Buka Drive Galeri">☁️</a>` : ''}
                 <button class="btn btn-secondary btn-sm" onclick="App.openProjectModal('${p.id}')">Edit</button>
                 <button class="btn btn-danger btn-sm" onclick="App.deleteProject('${p.id}')">&times;</button>
               </div>
@@ -504,10 +540,11 @@ const App = {
       timeline.innerHTML = projects.map(p => {
         const isToday = p.date === todayStr;
         const isPast = p.date < todayStr;
+        const calUrl = this.googleCalendarUrl(p);
 
         return `
           <div style="display: flex; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); ${isToday ? 'background: rgba(47, 129, 247, 0.08); padding-left: 12px; border-left: 3px solid var(--accent);' : ''}">
-            <div style="width: 120px; flex-shrink: 0;">
+            <div style="width: 130px; flex-shrink: 0;">
               <div style="font-weight: 700; font-size: 14px; color: ${isToday ? 'var(--accent)' : '#fff'};">${this.formatDate(p.date)}</div>
               <div style="font-size: 12px; color: var(--text-muted);">${p.time ? `🕒 ${p.time} ${p.endTime ? `- ${p.endTime}` : ''}` : 'Waktu fleksibel'}</div>
               ${isToday ? '<span class="badge" style="background: var(--accent); color: #fff; margin-top: 4px;">HARI INI</span>' : (isPast ? '<span class="badge" style="font-size: 9px;">LEWAT</span>' : '')}
@@ -524,7 +561,10 @@ const App = {
             </div>
             <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 6px;">
               <span class="badge badge-${p.workflowStatus}">${this.statusLabels[p.workflowStatus] || p.workflowStatus}</span>
-              <button class="btn btn-secondary btn-sm" onclick="App.openProjectModal('${p.id}')">Detail</button>
+              <div style="display: flex; gap: 4px;">
+                <a href="${calUrl}" target="_blank" class="btn btn-secondary btn-sm" title="Simpan ke Google Calendar">📅 Kalender</a>
+                <button class="btn btn-secondary btn-sm" onclick="App.openProjectModal('${p.id}')">Detail</button>
+              </div>
             </div>
           </div>
         `;
@@ -605,6 +645,19 @@ const App = {
     }
   },
 
+  // --- MODAL TABS ---
+  switchProjectTab(tabName) {
+    this.activeProjectTab = tabName;
+    document.querySelectorAll('.modal-tabs .modal-tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tabName);
+    });
+
+    ['info', 'shotlist', 'gear', 'expenses', 'selection'].forEach(t => {
+      const pane = document.getElementById(`proj-tab-${t}`);
+      if (pane) pane.style.display = t === tabName ? 'block' : 'none';
+    });
+  },
+
   // --- MODAL CONTROLS ---
   openProjectModal(id = null) {
     const modal = document.getElementById('modal-project');
@@ -613,11 +666,20 @@ const App = {
     form.reset();
     document.getElementById('proj-id').value = '';
 
+    this.switchProjectTab('info');
+    const btnInvoice = document.getElementById('proj-btn-print-invoice');
+    const btnWA = document.getElementById('proj-btn-wa-msg');
+
     if (id) {
       titleEl.textContent = 'Edit Sesi Foto / Proyek';
+      if (btnInvoice) btnInvoice.style.display = 'inline-flex';
+      if (btnWA) btnWA.style.display = 'inline-flex';
+
       API.getProject(id).then(res => {
         const p = res.project;
         if (!p) return;
+        this.currentProject = p;
+
         document.getElementById('proj-id').value = p.id;
         document.getElementById('proj-title').value = p.title || '';
         document.getElementById('proj-category').value = p.category || 'Wedding';
@@ -637,9 +699,28 @@ const App = {
         document.getElementById('proj-payment-status').value = p.paymentStatus || 'unpaid';
         document.getElementById('proj-drive-url').value = p.driveUrl || '';
         document.getElementById('proj-notes').value = p.notes || '';
+        document.getElementById('proj-selected-photos').value = p.selectedPhotos || '';
+
+        this.renderShotlist();
+        this.renderGearList();
+        this.renderExpenses();
+        this.updateExpenseCalculations();
       });
     } else {
       titleEl.textContent = 'Tambah Sesi Foto Baru';
+      if (btnInvoice) btnInvoice.style.display = 'none';
+      if (btnWA) btnWA.style.display = 'none';
+
+      this.currentProject = {
+        shotlist: [],
+        gearChecklist: [],
+        expenses: [],
+        selectedPhotos: ''
+      };
+      this.renderShotlist();
+      this.renderGearList();
+      this.renderExpenses();
+      this.updateExpenseCalculations();
     }
 
     modal.style.display = 'flex';
@@ -670,7 +751,11 @@ const App = {
       paymentStatus: document.getElementById('proj-payment-status').value,
       workflowStatus: document.getElementById('proj-workflow-status').value,
       driveUrl: document.getElementById('proj-drive-url').value,
-      notes: document.getElementById('proj-notes').value
+      notes: document.getElementById('proj-notes').value,
+      shotlist: this.currentProject ? this.currentProject.shotlist || [] : [],
+      gearChecklist: this.currentProject ? this.currentProject.gearChecklist || [] : [],
+      expenses: this.currentProject ? this.currentProject.expenses || [] : [],
+      selectedPhotos: document.getElementById('proj-selected-photos').value || ''
     };
 
     try {
@@ -700,6 +785,420 @@ const App = {
       this.loadDashboard();
     } catch (err) {
       this.toast(err.message, 'error');
+    }
+  },
+
+  // --- SHOT LIST HANDLERS ---
+  renderShotlist() {
+    const container = document.getElementById('proj-shotlist-items');
+    if (!container || !this.currentProject) return;
+    const items = this.currentProject.shotlist || [];
+
+    if (items.length === 0) {
+      container.innerHTML = '<div style="color: var(--text-dim); font-size: 12px; padding: 10px 0;">Belum ada momen terdaftar. Klik "+ Template Standar" atau ketik momen baru di bawah.</div>';
+      return;
+    }
+
+    container.innerHTML = items.map((item, idx) => `
+      <div class="checklist-item ${item.done ? 'done' : ''}" style="justify-content: space-between;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1;">
+          <input type="checkbox" ${item.done ? 'checked' : ''} onchange="App.toggleShotlistItem(${idx})">
+          <span>${this.escapeHtml(item.text)}</span>
+        </label>
+        <button type="button" class="btn btn-danger btn-sm" onclick="App.deleteShotlistItem(${idx})" style="padding: 2px 6px;">&times;</button>
+      </div>
+    `).join('');
+  },
+
+  toggleShotlistItem(idx) {
+    if (this.currentProject && this.currentProject.shotlist[idx]) {
+      this.currentProject.shotlist[idx].done = !this.currentProject.shotlist[idx].done;
+      this.renderShotlist();
+    }
+  },
+
+  addShotlistItem() {
+    const input = document.getElementById('proj-new-shotlist-input');
+    if (!input || !input.value.trim()) return;
+    if (!this.currentProject.shotlist) this.currentProject.shotlist = [];
+    this.currentProject.shotlist.push({ id: Date.now(), text: input.value.trim(), done: false });
+    input.value = '';
+    this.renderShotlist();
+  },
+
+  deleteShotlistItem(idx) {
+    if (this.currentProject && this.currentProject.shotlist) {
+      this.currentProject.shotlist.splice(idx, 1);
+      this.renderShotlist();
+    }
+  },
+
+  loadDefaultShotlist() {
+    const cat = document.getElementById('proj-category')?.value || 'Wedding';
+    const defaults = {
+      Wedding: [
+        'Detail Cincin & Gaun Pengantin',
+        'Make Up & Persiapan Pengantin',
+        'First Look Momen',
+        'Akad Nikah / Pemberkatan (Ijab Kabul)',
+        'Sungkeman / Haru Orang Tua',
+        'Pemasangan Cincin & Buku Nikah',
+        'Foto Keluarga Inti & Kerabat',
+        'Resepsi & Lempar Bunga'
+      ],
+      Prewedding: [
+        'Close-up Romantic Pose',
+        'Wide Angle Lokasi Outdoor',
+        'Walking & Candid Laughing',
+        'Detail Cincin / Hands Holding',
+        'Sunset / Golden Hour Silhouette'
+      ],
+      Portrait: [
+        'Headshot Clean Background',
+        'Half Body Styling Pose',
+        'Full Body Look',
+        'Creative Lighting / Drama Portrait'
+      ],
+      Wisuda: [
+        'Portrait dengan Toga & Ijazah',
+        'Lempar Topi Toga Momen',
+        'Foto bersama Orang Tua',
+        'Foto bersama Pasangan / Sahabat'
+      ]
+    };
+
+    const list = defaults[cat] || defaults.Wedding;
+    this.currentProject.shotlist = list.map((text, i) => ({ id: Date.now() + i, text, done: false }));
+    this.renderShotlist();
+    this.toast(`Template shot list ${cat} dimuat`, 'info');
+  },
+
+  // --- GEAR CHECKLIST HANDLERS ---
+  renderGearList() {
+    const container = document.getElementById('proj-gear-items');
+    if (!container || !this.currentProject) return;
+    const items = this.currentProject.gearChecklist || [];
+
+    if (items.length === 0) {
+      container.innerHTML = '<div style="color: var(--text-dim); font-size: 12px; padding: 10px 0;">Belum ada perlengkapan dicatat. Klik "+ Gear Standar" untuk memuat checklist alat.</div>';
+      return;
+    }
+
+    container.innerHTML = items.map((item, idx) => `
+      <div class="checklist-item ${item.done ? 'done' : ''}" style="justify-content: space-between;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1;">
+          <input type="checkbox" ${item.done ? 'checked' : ''} onchange="App.toggleGearItem(${idx})">
+          <span>${this.escapeHtml(item.text)}</span>
+        </label>
+        <button type="button" class="btn btn-danger btn-sm" onclick="App.deleteGearItem(${idx})" style="padding: 2px 6px;">&times;</button>
+      </div>
+    `).join('');
+  },
+
+  toggleGearItem(idx) {
+    if (this.currentProject && this.currentProject.gearChecklist[idx]) {
+      this.currentProject.gearChecklist[idx].done = !this.currentProject.gearChecklist[idx].done;
+      this.renderGearList();
+    }
+  },
+
+  addGearItem() {
+    const input = document.getElementById('proj-new-gear-input');
+    if (!input || !input.value.trim()) return;
+    if (!this.currentProject.gearChecklist) this.currentProject.gearChecklist = [];
+    this.currentProject.gearChecklist.push({ id: Date.now(), text: input.value.trim(), done: false });
+    input.value = '';
+    this.renderGearList();
+  },
+
+  deleteGearItem(idx) {
+    if (this.currentProject && this.currentProject.gearChecklist) {
+      this.currentProject.gearChecklist.splice(idx, 1);
+      this.renderGearList();
+    }
+  },
+
+  loadDefaultGearList() {
+    const gears = [
+      'Body Kamera Utama + Strap',
+      'Body Kamera Cadangan',
+      'Lensa 24-70mm f/2.8',
+      'Lensa 70-200mm / 85mm f/1.4',
+      'Baterai Kamera Terisi Penuh (x3)',
+      'Memory Card SD/CFexpress Kosong (x3)',
+      'Flash Eksternal Godox + Trigger Wireless',
+      'Baterai Cadangan Flash AA',
+      'Kain Microfiber & Lens Cleaner'
+    ];
+    this.currentProject.gearChecklist = gears.map((text, i) => ({ id: Date.now() + i, text, done: false }));
+    this.renderGearList();
+    this.toast('Gear standar fotografi dimuat', 'info');
+  },
+
+  // --- EXPENSES & NET PROFIT HANDLERS ---
+  renderExpenses() {
+    const container = document.getElementById('proj-expense-items');
+    if (!container || !this.currentProject) return;
+    const items = this.currentProject.expenses || [];
+
+    if (items.length === 0) {
+      container.innerHTML = '<div style="color: var(--text-dim); font-size: 12px; padding: 10px 0;">Belum ada biaya operasional dicatat.</div>';
+      return;
+    }
+
+    container.innerHTML = items.map((item, idx) => `
+      <div class="expense-item">
+        <div>
+          <span style="font-weight: 500; color: #fff;">${this.escapeHtml(item.name)}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-weight: 600; color: var(--danger-text);">${this.formatIDR(item.amount)}</span>
+          <button type="button" class="btn btn-danger btn-sm" onclick="App.deleteExpenseItem(${idx})" style="padding: 2px 6px;">&times;</button>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  addExpenseItem() {
+    const nameInput = document.getElementById('proj-new-expense-name');
+    const amountInput = document.getElementById('proj-new-expense-amount');
+    if (!nameInput || !nameInput.value.trim() || !amountInput || !amountInput.value) return;
+
+    if (!this.currentProject.expenses) this.currentProject.expenses = [];
+    this.currentProject.expenses.push({
+      id: Date.now(),
+      name: nameInput.value.trim(),
+      amount: Number(amountInput.value) || 0
+    });
+
+    nameInput.value = '';
+    amountInput.value = '';
+    this.renderExpenses();
+    this.updateExpenseCalculations();
+  },
+
+  deleteExpenseItem(idx) {
+    if (this.currentProject && this.currentProject.expenses) {
+      this.currentProject.expenses.splice(idx, 1);
+      this.renderExpenses();
+      this.updateExpenseCalculations();
+    }
+  },
+
+  updateExpenseCalculations() {
+    const pkgPrice = Number(document.getElementById('proj-package-price')?.value) || 0;
+    const addOns = Number(document.getElementById('proj-addons-price')?.value) || 0;
+    const totalRevenue = pkgPrice + addOns;
+
+    let totalExp = 0;
+    if (this.currentProject && Array.isArray(this.currentProject.expenses)) {
+      totalExp = this.currentProject.expenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    }
+
+    const netProfit = totalRevenue - totalExp;
+
+    const revEl = document.getElementById('proj-calc-revenue');
+    if (revEl) revEl.textContent = this.formatIDR(totalRevenue);
+
+    const expEl = document.getElementById('proj-calc-expenses');
+    if (expEl) expEl.textContent = this.formatIDR(totalExp);
+
+    const netEl = document.getElementById('proj-calc-net');
+    if (netEl) {
+      netEl.textContent = this.formatIDR(netProfit);
+      netEl.style.color = netProfit >= 0 ? '#3fb950' : 'var(--danger-text)';
+    }
+  },
+
+  copySelectedPhotos() {
+    const txt = document.getElementById('proj-selected-photos')?.value || '';
+    if (!txt.trim()) {
+      this.toast('Belum ada nomor foto untuk disalin', 'info');
+      return;
+    }
+    navigator.clipboard.writeText(txt);
+    this.toast('Nomor foto disalin ke clipboard! Siap di-paste ke Lightroom/Photo Mechanic.', 'success');
+  },
+
+  // --- INVOICE GENERATOR ---
+  async openInvoiceModal(projectId = null) {
+    const p = projectId ? (await API.getProject(projectId)).project : this.currentProject;
+    if (!p) return;
+
+    const s = this.settings;
+    document.getElementById('inv-studio-name').textContent = s.studioName || 'TEN PHOTOGRAPHY';
+    document.getElementById('inv-studio-contact').textContent = `WhatsApp: ${s.phone || '-'} | fg.ten.my.id`;
+    document.getElementById('inv-number').textContent = `INV-${(p.id || '').replace('proj_', '').substring(0, 8).toUpperCase()}`;
+    document.getElementById('inv-date').textContent = this.formatDate(new Date().toISOString().split('T')[0]);
+
+    document.getElementById('inv-client-name').textContent = p.clientName || 'Klien';
+    document.getElementById('inv-client-phone').textContent = p.clientPhone ? `WhatsApp: ${p.clientPhone}` : '';
+
+    document.getElementById('inv-project-title').textContent = p.title || 'Sesi Foto';
+    document.getElementById('inv-package-desc').textContent = `${p.category || 'Fotografi'} ${p.packageName ? `(${p.packageName})` : ''} - Tanggal: ${p.date ? this.formatDate(p.date) : 'TBD'}`;
+    document.getElementById('inv-package-price').textContent = this.formatIDR(p.packagePrice || 0);
+
+    const addonsRow = document.getElementById('inv-row-addons');
+    if (p.addOnsPrice > 0) {
+      addonsRow.style.display = 'table-row';
+      document.getElementById('inv-addons-price').textContent = this.formatIDR(p.addOnsPrice);
+    } else {
+      addonsRow.style.display = 'none';
+    }
+
+    const total = Number(p.totalPrice) || 0;
+    const dp = Number(p.dpAmount) || 0;
+    const balance = total - dp;
+
+    document.getElementById('inv-total-price').textContent = this.formatIDR(total);
+    document.getElementById('inv-dp-amount').textContent = this.formatIDR(dp);
+    document.getElementById('inv-balance').textContent = balance <= 0 ? 'Rp 0' : this.formatIDR(balance);
+
+    const badge = document.getElementById('inv-badge-status');
+    if (p.paymentStatus === 'paid' || balance <= 0) {
+      badge.className = 'invoice-badge-paid';
+      badge.textContent = 'LUNAS';
+    } else if (dp > 0) {
+      badge.className = 'invoice-badge-unpaid';
+      badge.textContent = 'DP DITERIMA';
+    } else {
+      badge.className = 'invoice-badge-unpaid';
+      badge.textContent = 'BELUM BAYAR';
+    }
+
+    document.getElementById('inv-bank-info').textContent = s.bankName && s.bankAccount ? `Transfer Bank: ${s.bankName} ${s.bankAccount} (a.n ${s.bankHolder || s.studioName})` : 'Metode Pembayaran: Transfer Rekening Fotografer';
+    document.getElementById('inv-signer-name').textContent = s.bankHolder || s.studioName || 'Fotografer';
+
+    document.getElementById('modal-invoice').style.display = 'flex';
+  },
+
+  // --- WHATSAPP QUICK AUTOMATION ---
+  async openWAModal(projectId = null) {
+    const p = projectId ? (await API.getProject(projectId)).project : this.currentProject;
+    if (!p) return;
+    this.currentProject = p;
+
+    this.onWATemplateChange();
+    document.getElementById('modal-wa-templates').style.display = 'flex';
+  },
+
+  onWATemplateChange() {
+    const p = this.currentProject;
+    if (!p) return;
+    const s = this.settings;
+    const type = document.getElementById('wa-template-select')?.value || 'reminder';
+    const preview = document.getElementById('wa-template-preview');
+    const sendBtn = document.getElementById('wa-btn-send-direct');
+
+    const origin = window.location.origin;
+    const portalUrl = `${origin}/?portal=${p.id}`;
+    const dateFormatted = p.date ? this.formatDate(p.date) : 'segera';
+    const total = this.formatIDR(p.totalPrice || 0);
+    const balance = this.formatIDR((p.totalPrice || 0) - (p.dpAmount || 0));
+    const bank = s.bankName && s.bankAccount ? `${s.bankName} ${s.bankAccount} (a.n ${s.bankHolder || s.studioName})` : '';
+
+    let text = '';
+
+    if (type === 'reminder') {
+      text = `Halo Kak ${p.clientName}! 👋\n\nMengingatkan kembali jadwal sesi foto kita besok:\n📅 Hari/Tgl: ${dateFormatted}\n⏰ Waktu: ${p.time || 'Sesuai kesepakatan'}\n📍 Lokasi: ${p.location || 'Sesuai briefing'}\n${p.mapsUrl ? `🗺️ Maps: ${p.mapsUrl}\n` : ''}\nMohon hadir tepat waktu agar sesi pemotretan berjalan maksimal. Sampai bertemu besok ya Kak!\n\nSalam,\n*${s.studioName || 'TEN Photography'}*`;
+    } else if (type === 'invoice') {
+      text = `Halo Kak ${p.clientName}! 🙏\n\nBerikut rincian tagihan sesi foto *${p.title}*:\n• Total Biaya: ${total}\n• DP Masuk: ${this.formatIDR(p.dpAmount || 0)}\n• Sisa Pembayaran: *${balance}*\n\nPembayaran dapat ditransfer ke:\n💳 ${bank}\n\nKonfirmasi bukti transfer ke nomor ini jika sudah ya Kak. Terima kasih banyak!`;
+    } else if (type === 'portal') {
+      text = `Halo Kak ${p.clientName}! ✨\n\nBerikut tautan portal sesi foto Anda untuk memantau jadwal, lokasi, status progres pengerjaan, dan unduhan foto:\n👉 ${portalUrl}\n\nTautan ini bisa dibuka langsung tanpa perlu login. Terima kasih!`;
+    } else if (type === 'drive') {
+      text = `Halo Kak ${p.clientName}! 🎉\n\nKabar gembira, foto-foto sesi *${p.title}* sudah selesai dan siap diunduh!\n\n📥 Link Galeri / Google Drive:\n${p.driveUrl || portalUrl}\n\nSilakan diunduh dan disimpan berkas fotonya ya Kak. Terima kasih banyak atas kepercayaannya memotret bersama kami!`;
+    } else if (type === 'review') {
+      text = `Halo Kak ${p.clientName}! ❤️\n\nTerima kasih banyak sudah mempercayakan momen terbaik Kakak kepada kami (*${s.studioName || 'TEN Photography'}*).\n\nJika Kakak posting foto hasil pemotretan di Instagram, jangan lupa tag kami di *${s.instagram || '@tenphotography'}* ya!\n\nSehat dan sukses selalu untuk Kakak sekeluarga! 🙏`;
+    }
+
+    if (preview) preview.value = text;
+
+    if (sendBtn) {
+      let cleanPhone = (p.clientPhone || '').replace(/\D/g, '');
+      if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.substring(1);
+      if (cleanPhone) {
+        sendBtn.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+        sendBtn.style.display = 'inline-flex';
+      } else {
+        sendBtn.style.display = 'none';
+      }
+    }
+  },
+
+  copyWAText() {
+    const text = document.getElementById('wa-template-preview')?.value || '';
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    this.toast('Teks pesan WhatsApp berhasil disalin!', 'success');
+  },
+
+  // --- GOOGLE CALENDAR LINK GENERATOR ---
+  googleCalendarUrl(p) {
+    if (!p || !p.date) return '#';
+    const cleanDate = p.date.replace(/-/g, '');
+    let startDateTime = `${cleanDate}T090000Z`;
+    let endDateTime = `${cleanDate}T120000Z`;
+
+    if (p.time) {
+      const timeParts = p.time.split(':');
+      const startH = timeParts[0].padStart(2, '0');
+      const startM = (timeParts[1] || '00').padStart(2, '0');
+      startDateTime = `${cleanDate}T${startH}${startM}00`;
+
+      if (p.endTime) {
+        const endParts = p.endTime.split(':');
+        endDateTime = `${cleanDate}T${endParts[0].padStart(2, '0')}${endParts[1] || '00'}00`;
+      } else {
+        const nextH = String(Number(startH) + 3).padStart(2, '0');
+        endDateTime = `${cleanDate}T${nextH}${startM}00`;
+      }
+    }
+
+    const title = encodeURIComponent(`📸 Sesi Foto: ${p.title} (${p.clientName})`);
+    const details = encodeURIComponent(`Sesi foto bersama ${p.clientName} (${p.clientPhone || ''}). Paket: ${p.category} ${p.packageName || ''}.`);
+    const location = encodeURIComponent(p.location || '');
+
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDateTime}/${endDateTime}&details=${details}&location=${location}`;
+  },
+
+  // --- EXPORT CSV ---
+  async exportCSV() {
+    try {
+      const res = await API.getProjects('all');
+      const projects = res.projects || [];
+      if (projects.length === 0) {
+        this.toast('Belum ada data proyek untuk diekspor', 'info');
+        return;
+      }
+
+      const headers = ['ID', 'Judul Sesi', 'Klien', 'WhatsApp', 'Kategori', 'Tanggal', 'Jam', 'Lokasi', 'Harga Paket', 'DP', 'Status Bayar', 'Status Alur Kerja', 'Drive Link'];
+      const rows = projects.map(p => [
+        p.id,
+        `"${(p.title || '').replace(/"/g, '""')}"`,
+        `"${(p.clientName || '').replace(/"/g, '""')}"`,
+        `"${p.clientPhone || ''}"`,
+        `"${p.category || ''}"`,
+        p.date || '',
+        p.time || '',
+        `"${(p.location || '').replace(/"/g, '""')}"`,
+        p.totalPrice || 0,
+        p.dpAmount || 0,
+        p.paymentStatus || '',
+        p.workflowStatus || '',
+        `"${p.driveUrl || ''}"`
+      ]);
+
+      const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `rekap-proyek-fg-ten-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      this.toast('Berkas CSV berhasil diunduh!', 'success');
+    } catch (err) {
+      this.toast('Gagal mengekspor data: ' + err.message, 'error');
     }
   },
 
@@ -909,6 +1408,40 @@ const App = {
         `;
       } else {
         driveContent.innerHTML = `<p style="font-size: 13px; color: var(--text-dim);">Tautan galeri/Google Drive akan muncul di sini setelah sesi foto selesai diedit.</p>`;
+      }
+
+      // Photo Selection Input
+      const selectionInput = document.getElementById('portal-selection-input');
+      const selectionFeedback = document.getElementById('portal-selection-feedback');
+      if (selectionInput) {
+        selectionInput.value = p.selectedPhotos || '';
+      }
+      if (selectionFeedback && p.selectedPhotos) {
+        selectionFeedback.style.display = 'block';
+        selectionFeedback.style.color = '#3fb950';
+        selectionFeedback.textContent = '✅ Pilihan foto Anda sudah tersimpan dan diterima fotografer.';
+      }
+
+      const saveSelectionBtn = document.getElementById('portal-btn-save-selection');
+      if (saveSelectionBtn) {
+        saveSelectionBtn.onclick = async () => {
+          const val = selectionInput ? selectionInput.value : '';
+          try {
+            saveSelectionBtn.disabled = true;
+            saveSelectionBtn.textContent = 'Menyimpan...';
+            await API.submitPortalSelection(id, val);
+            if (selectionFeedback) {
+              selectionFeedback.style.display = 'block';
+              selectionFeedback.style.color = '#3fb950';
+              selectionFeedback.textContent = '✅ Pilihan foto Anda berhasil disimpan!';
+            }
+          } catch (err) {
+            alert('Gagal menyimpan pilihan: ' + err.message);
+          } finally {
+            saveSelectionBtn.disabled = false;
+            saveSelectionBtn.textContent = '💾 Kirim Nomor Pilihan ke Fotografer';
+          }
+        };
       }
 
       // Deliverables

@@ -182,5 +182,12 @@ const API = {
   // Public Portal
   async getPortalProject(id) {
     return await this.request(`/api/portal/${id}`);
+  },
+
+  async submitPortalSelection(id, selectedPhotos) {
+    return await this.request(`/api/portal/${id}`, {
+      method: 'POST',
+      body: JSON.stringify({ selectedPhotos })
+    });
   }
 };
